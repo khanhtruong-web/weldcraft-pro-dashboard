@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspector AI Desk Pro v2.0 - NotebookLM Class</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Google Drive API & Identity Services -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Mammoth.js for Word Support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
+    
+    <!-- KaTeX for Formulas -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <!-- PDF.js for Advanced Rendering and Text Extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <!-- Marked.js for Markdown Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        :root {
+            /* Premium Oceanic Professional - V2 */
+            --bg: #f8fafc;
+            --sidebar: #ffffff;
+            --sidebar-text: #64748b;
+            --sidebar-active: #2563eb;
+            --sidebar-active-bg: #eff6ff;
+            --panel: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --accent: #f59e0b;
+            --accent-gradient: linear-gradient(135deg, #2563eb, #8b5cf6);
+            --success: #10b981;
+            --error: #ef4444;
+            --radius-xl: 24px;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --sidebar-width: 280px;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.3);
+        }
+
+        .dark-mode {
+            --bg: #0f172a;
+            --sidebar: #1e293b;
+            --sidebar-text: #94a3b8;
+            --sidebar-active: #3b82f6;
+            --sidebar-active-bg: rgba(59, 130, 246, 0.1);
+            --panel: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --primary-light: rgba(59, 130, 246, 0.1);
+            --glass-bg: rgba(30, 41, 59, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.05);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); height: 100vh; display: flex; transition: background 0.3s, color 0.3s; overflow: hidden; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        .app-container { display: flex; width: 100%; height: 100%; overflow: hidden; }
+
+        /* Sidebar Navigation */
+        .sidebar { width: var(--sidebar-width); background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 16px; flex-shrink: 0; z-index: 10; transition: all 0.3s; }
+        .brand { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 800; margin-bottom: 40px; padding: 0 12px; color: var(--text-main); background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .brand i { -webkit-text-fill-color: var(--primary); font-size: 28px; }
+
+        .nav-list { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-md); cursor: pointer; color: var(--sidebar-text); font-weight: 600; transition: all 0.2s; font-size: 14px; }
+        .nav-item:hover { background: var(--sidebar-active-bg); color: var(--sidebar-active); transform: translateX(4px); }
+        .nav-item.active { background: var(--sidebar-active-bg); color: var(--sidebar-active); }
+
+        .sidebar-footer { padding-top: 24px; border-top: 1px solid var(--border); }
+
+        /* Viewport */
+        .viewport { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; padding: 40px 48px; }
+        .view { flex: 1; overflow-y: auto; display: none; width: 100%; max-width: 1400px; margin: 0 auto; padding-bottom: 40px; }
+        .view.active { display: block; animation: fadeUpIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeUpIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .view-header h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; }
+
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; border-radius: var(--radius-sm); font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; font-size: 14px; }
+        .btn-primary { background: var(--primary); color: white; box-shadow: var(--shadow-sm); }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--shadow); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: var(--sidebar-active-bg); }
+
+        /* Dashboard Elements */
+        .banner-gradient { background: var(--accent-gradient); border-radius: var(--radius-lg); padding: 24px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; color: white; box-shadow: var(--shadow); }
+        .banner-gradient i { background: rgba(255,255,255,0.2); width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; backdrop-filter: blur(4px); }
+        .banner-gradient .content { flex: 1; margin: 0 20px; font-size: 15px; }
+        .banner-gradient .btn { background: white; color: var(--primary); border: none; }
+
+        .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 32px; }
+        .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .kpi-card { display: flex; align-items: center; gap: 20px; }
+        .kpi-icon { width: 56px; height: 56px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 28px; background: var(--primary-light); color: var(--primary); }
+        .kpi-icon.success { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .kpi-icon.accent { background: rgba(245, 158, 11, 0.1); color: var(--accent); }
+        .kpi-val { font-size: 28px; font-weight: 800; display: block; line-height: 1.2; }
+        .kpi-label { font-size: 13px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .main-grid { display: grid; grid-template-columns: 1fr 340px; gap: 32px; }
+
+        /* Notebook Table */
+        .section-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .notebook-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .notebook-table th { text-align: left; padding: 12px 16px; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+        .notebook-table td { padding: 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s; font-size: 14px; }
+        .notebook-table tr:hover td { background: var(--primary-light); }
+        .notebook-table tr:last-child td { border-bottom: none; }
+        
+        .prog-tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background: rgba(245, 158, 11, 0.1); color: #d97706; }
+        .prog-tag.done { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+
+        /* Task Sidebar */
+        .task-list { display: flex; flex-direction: column; gap: 12px; }
+        .task-card { border: 1px solid var(--border); border-left: 4px solid var(--primary); background: var(--panel); border-radius: var(--radius-md); padding: 16px; display: flex; align-items: center; justify-content: space-between; transition: transform 0.2s; }
+        .task-card:hover { transform: translateX(4px); }
+        .task-card.info { border-left-color: var(--accent); }
+        .task-card.success { border-left-color: var(--success); }
+
+        /* Workspace Updates (NotebookLM Style) */
+        .workspace-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg); z-index: 1000; display: none; overflow: hidden; }
+        .workspace-overlay.active { display: flex; animation: fadeIn 0.3s forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .ws-sidebar { width: 320px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px; flex-shrink: 0; z-index: 2; }
+        .ws-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); position: relative; }
+        
+        /* Advanced PDF Reader */
+        .ws-reader { width: 45%; background: #e2e8f0; border-left: 1px solid var(--border); position: relative; display: flex; flex-direction: column; }
+        .dark-mode .ws-reader { background: #0f172a; border-left: 1px solid #334155; }
+        
+        .reader-toolbar { padding: 12px 16px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+        .reader-controls { display: flex; gap: 8px; align-items: center; }
+        .reader-controls button { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; cursor: pointer; color: var(--text-main); }
+        .reader-controls button:hover { background: var(--primary-light); color: var(--primary); }
+        .page-info { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+        
+        #pdf-render-container { flex: 1; overflow: auto; display: flex; justify-content: center; padding: 20px; background: var(--bg); position: relative; }
+        #pdf-canvas { max-width: 100%; box-shadow: var(--shadow-lg); background: white; }
+
+        .tab-nav { display:flex; padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--panel); align-items:center; z-index: 10; gap: 8px;}
+        .tab-btn { background: none; border: none; padding: 16px 16px; font-weight: 600; color: var(--text-muted); cursor: pointer; position: relative; font-size: 14px; transition: color 0.2s; }
+        .tab-btn:hover { color: var(--text-main); }
+        .tab-btn.active { color: var(--primary); }
+        .tab-btn.active::after { content: ""; position: absolute; bottom: -1px; left: 0; width: 100%; height: 2px; background: var(--primary); border-radius: 2px 2px 0 0; }
+
+        /* Studio Panel (One-Click Generators) */
+        .studio-panel { position: absolute; right: 24px; top: 80px; width: 260px; background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-lg); z-index: 100; transform: translateX(300px); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .studio-panel.open { transform: translateX(0); }
+        .studio-toggle { position: absolute; right: 24px; top: 20px; z-index: 101; border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--primary); color: white; box-shadow: var(--shadow-md); }
+        .studio-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.2s; font-size: 13px; font-weight: 600; color: var(--text-main); }
+        .studio-item:hover { background: var(--primary-light); color: var(--primary); }
+        .studio-item i { font-size: 18px; color: var(--primary); }
+
+        /* Chat UI Enhancement */
+        .chat-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .chat-history { flex: 1; overflow-y: auto; padding: 32px 24px; display: flex; flex-direction: column; gap: 24px; }
+        .message { max-width: 85%; padding: 16px 20px; border-radius: 18px; font-size: 15px; line-height: 1.6; position: relative; box-shadow: var(--shadow-sm); }
+        .message.ai { background: var(--panel); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 4px; }
+        .message.user { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .message.ai .citation { display: inline-block; font-size: 11px; font-weight: 700; background: var(--primary-light); color: var(--primary); padding: 2px 6px; border-radius: 4px; margin: 0 4px; cursor: pointer; text-decoration: none; border: 1px solid rgba(37, 99, 235, 0.2); }
+        .message.ai .citation:hover { background: var(--primary); color: white; }
+        .chat-input-area { padding: 24px; background: var(--panel); border-top: 1px solid var(--border); }
+        .chat-input-wrapper { display: flex; gap: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 8px 16px; align-items: center; transition: border-color 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        .chat-input-wrapper:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+        .chat-input-wrapper textarea { flex: 1; border: none; background: none; outline: none; font-size: 15px; resize: none; max-height: 120px; color: var(--text-main); padding: 8px 0; font-family: inherit;}
+
+        /* Rich Text Editor */
+        .editor-container { flex: 1; overflow-y: auto; padding: 40px; background: var(--bg); }
+        .editor-sheet { background: var(--panel); max-width: 800px; margin: 0 auto; min-height: 800px; padding: 60px; border-radius: var(--radius-md); box-shadow: var(--shadow); outline: none; line-height: 1.7; font-size: 16px; }
+        .editor-sheet h1, .editor-sheet h2 { margin-top: 24px; margin-bottom: 12px; }
+
+        /* Matrix Table */
+        #matrix-table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); }
+        #matrix-table th { background: var(--bg); color: var(--text-muted); padding: 16px; text-align: left; border-bottom: 2px solid var(--border); font-size: 13px; text-transform: uppercase; font-weight: 700; }
+        #matrix-table td { border-bottom: 1px solid var(--border); padding: 16px; vertical-align: top; font-size: 14px; min-height: 50px; }
+        #matrix-table td:focus { background: var(--primary-light); outline: none; }
+
+        /* Modals */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s; }
+        .modal.active { display: flex; opacity: 1; }
+        .modal-card { width: 100%; max-width: 480px; background: var(--panel); padding: 32px; border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); transform: translateY(20px); transition: transform 0.3s; border: 1px solid var(--border); }
+        .modal.active .modal-card { transform: translateY(0); }
+        .form-input { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; background: var(--bg); color: var(--text-main); margin-bottom: 20px; outline: none; transition: border-color 0.2s; }
+        .form-input:focus { border-color: var(--primary); }
+
+        /* Toast Notifications */
+        #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: var(--panel); color: var(--text-main); padding: 16px 20px; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); border-left: 4px solid var(--primary); display: flex; align-items: center; gap: 12px; font-weight: 500; font-size: 14px; animation: slideInRight 0.3s forwards, fadeOut 0.3s 3s forwards; }
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--error); }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
+
+        /* Sources List */
+        .source-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--radius-sm); cursor: pointer; transition: 0.2s; margin-bottom: 8px; border: 1px solid transparent; }
+        .source-item:hover { background: var(--bg); border-color: var(--border); }
+        .source-item.active { background: var(--primary-light); border-color: rgba(37, 99, 235, 0.2); color: var(--primary); }
+        .source-box { padding: 16px; border: 2px dashed var(--border); border-radius: var(--radius-md); text-align: center; cursor: pointer; color: var(--text-muted); font-size: 13px; font-weight: 600; transition: 0.2s; margin-bottom: 20px; }
+        .source-box:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+
+        #reader-loading { position: absolute; top:0; left:0; width:100%; height:100%; background:var(--glass-bg); backdrop-filter: blur(8px); z-index:100; display:none; flex-direction:column; align-items:center; justify-content:center; }
+        .spinner { width:40px; height:40px; border:4px solid var(--border); border-top:4px solid var(--primary); border-radius:50%; animation:spin 1s linear infinite; }
+        @keyframes spin { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container"></div>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand"><i class="ph-fill ph-hexagon"></i><span>Inspector Pro V2</span></div>
+            <nav class="nav-list">
+                <div class="nav-item active" onclick="switchView('dashboard')"><i class="ph ph-squares-four"></i><span>Command Center</span></div>
+                <div class="nav-item" onclick="switchView('library')"><i class="ph ph-books"></i><span>Notebook Library</span></div>
+                <div class="nav-item" onclick="switchView('planner')"><i class="ph ph-chart-line-up"></i><span>Analytics</span></div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="nav-item" onclick="switchView('settings')"><i class="ph ph-gear"></i><span>Settings</span></div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="viewport">
+            <!-- Dashboard -->
+            <section id="dashboard" class="view active">
+                <header class="view-header">
+                    <h1>Command Center</h1>
+                    <button class="btn btn-primary" onclick="openModal('modal-new-notebook')"><i class="ph-bold ph-plus"></i> New Notebook</button>
+                </header>
+
+                <div class="banner-gradient" id="ai-banner">
+                    <div style="display:flex; align-items:center;">
+                        <i class="ph-fill ph-sparkle"></i>
+                        <div class="content">
+                            <b style="font-size: 18px; display:block; margin-bottom:4px;">NotebookLM Engine Active</b>
+                            Upload technical standards, ask grounded questions, and let AI synthesize your study materials instantly.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="kpi-row">
+                    <div class="card kpi-card">
+                        <div class="kpi-icon"><i class="ph-fill ph-notebook"></i></div>
+                        <div><span class="kpi-val" id="kpi-notebooks">0</span><span class="kpi-label">Active Notebooks</span></div>
+                    </div>
+                    <div class="card kpi-card">
+                        <div class="kpi-icon success"><i class="ph-fill ph-file-pdf"></i></div>
+                        <div><span class="kpi-val" id="kpi-sources">0</span><span class="kpi-label">Indexed Sources</span></div>
+                    </div>
+                    <div class="card kpi-card">
+                        <div class="kpi-icon accent"><i class="ph-fill ph-brain"></i></div>
+                        <div><span class="kpi-val" id="kpi-matrix">0</span><span class="kpi-label">Knowledge Nodes</span></div>
+                    </div>
+                </div>
+
+                <div class="main-grid">
+                    <!-- Left: Recent Projects -->
+                    <div class="card" style="padding:0; overflow:hidden;">
+                        <div style="padding:24px 24px 16px;"><h3 class="section-title"><i class="ph-fill ph-folder-open"></i> Recent Notebooks</h3></div>
+                        <table class="notebook-table">
+                            <thead><tr><th>Project Title</th><th>Sources</th><th>Status</th><th></th></tr></thead>
+                            <tbody id="dashboard-nb-body"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Right: Review Tasks -->
+                    <div>
+                        <h3 class="section-title"><i class="ph-fill ph-calendar-check"></i> Review Queue</h3>
+                        <div class="task-list" id="task-list-container">
+                            <p style="font-size:13px; color:var(--text-muted);">No reviews scheduled. Add items to your Matrix.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Library View -->
+            <section id="library" class="view">
+                <header class="view-header">
+                    <h1>Notebook Library</h1>
+                    <button class="btn btn-outline" onclick="openModal('modal-new-notebook')">Create New</button>
+                </header>
+                <div class="kpi-row" id="full-library-container">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+
+            <!-- Planner View -->
+            <section id="planner" class="view">
+                <header class="view-header"><h1>Analytics (Phase 3 Shell)</h1></header>
+                <div class="card">
+                    <p>Advanced Analytics, Knowledge Graph, and Spaced Repetition heatmaps will be rendered here in subsequent phases.</p>
+                </div>
+            </section>
+
+            <!-- Settings View -->
+            <section id="settings" class="view">
+                <header class="view-header"><h1>Settings</h1></header>
+                <div class="card" style="max-width: 600px;">
+                    <h3 style="margin-bottom: 16px; display:flex; align-items:center; gap:8px;"><i class="ph-fill ph-google-logo" style="color:var(--primary);"></i> Gemini AI Integration</h3>
+                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:20px;">Required for RAG functionality. Use a Gemini API key.</p>
+                    <input type="password" id="api-key" class="form-input" placeholder="Paste your API Key here...">
+                    <button class="btn btn-primary" onclick="saveSettings()" style="width:100%;">Save AI Settings</button>
+                    
+                    <hr style="margin:32px 0; border:none; border-top: 1px solid var(--border);">
+                    
+                    <h3 style="margin-bottom: 16px;">System Preferences</h3>
+                    <button class="btn btn-outline" onclick="toggleTheme()" style="width:100%; margin-bottom: 12px;"><i class="ph ph-moon"></i> Toggle Dark Mode</button>
+                    <button class="btn btn-outline" style="width:100%; color:var(--error); border-color:var(--error);" onclick="clearAllData()"><i class="ph ph-trash"></i> Wipe All Data</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- NotebookLM Style Workspace -->
+    <div id="workspace" class="workspace-overlay">
+        <!-- Sidebar -->
+        <aside class="ws-sidebar">
+            <button class="btn btn-outline" style="border:none; margin-bottom:24px; padding:0; justify-content:flex-start; font-size:13px;" onclick="closeWorkspace()">
+                <i class="ph-bold ph-arrow-left"></i> Back to Dashboard
+            </button>
+            <h2 id="ws-notebook-title" style="font-size:20px; font-weight:800; margin-bottom:8px;">Project Title</h2>
+            <p id="ws-notebook-meta" style="font-size:12px; color:var(--text-muted); margin-bottom:32px; font-weight:600;">0 SOURCES</p>
+            
+            <div class="source-box" onclick="openModal('source-modal')">
+                <i class="ph-bold ph-plus" style="font-size: 24px; display:block; margin:0 auto 8px;"></i>
+                Upload Standard
+            </div>
+            
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Source Documents</div>
+            <div id="ws-sources-list" style="overflow-y:auto; flex:1;"></div>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="ws-main">
+            <nav class="tab-nav">
+                <button class="tab-btn active" onclick="switchWsMode('chat', this)"><i class="ph ph-chat-circle"></i> AI Assistant</button>
+                <button class="tab-btn" onclick="switchWsMode('notes', this)"><i class="ph ph-pencil-simple"></i> Drafting Pad</button>
+                <button class="tab-btn" onclick="switchWsMode('matrix', this)"><i class="ph ph-table"></i> Study Matrix</button>
+            </nav>
+
+            <!-- Chat View (RAG) -->
+            <div id="mode-chat" class="chat-container">
+                <div class="chat-history" id="chat-history"></div>
+                <div class="chat-input-area">
+                    <div class="chat-input-wrapper">
+                        <textarea id="ai-input" placeholder="Ask questions based on uploaded sources... (e.g., 'What are the acceptance criteria for porosity?')" onkeypress="handleEnter(event)"></textarea>
+                        <button class="btn btn-primary" style="border-radius:50%; width:44px; height:44px; padding:0;" onclick="sendAIQuery()">
+                            <i class="ph-fill ph-paper-plane-right" style="font-size: 20px;"></i>
+                        </button>
+                    </div>
+                    <div style="font-size: 11px; text-align:center; color: var(--text-muted); margin-top: 8px;">AI responses are grounded in the selected sources. Always verify against original documents.</div>
+                </div>
+            </div>
+
+            <!-- Notes View -->
+            <div id="mode-notes" class="editor-container" style="display:none;">
+                <div class="editor-sheet" contenteditable="true" id="ws-notes-editor" placeholder="Start typing your notes here..."></div>
+            </div>
+
+            <!-- Matrix View -->
+            <div id="mode-matrix" class="editor-container" style="display:none;">
+                <div style="max-width:1000px; margin:0 auto; width:100%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                        <h2>Knowledge Matrix</h2>
+                        <button class="btn btn-primary" onclick="addMatrixRow()"><i class="ph-bold ph-plus"></i> Add Row</button>
+                    </div>
+                    <table id="matrix-table">
+                        <thead><tr><th>Concept / Code</th><th>Explanation / Flashcard</th><th>Source Reference</th><th style="width:100px;">Actions</th></tr></thead>
+                        <tbody id="matrix-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Studio Panel Toggle -->
+            <button class="btn studio-toggle" onclick="toggleStudioPanel()" title="Open Studio Generators">
+                <i class="ph-fill ph-magic-wand"></i>
+            </button>
+
+            <!-- Studio Panel (One-Click Generators) -->
+            <div class="studio-panel" id="studio-panel">
+                <h3 style="font-size: 14px; margin-bottom: 16px; color: var(--text-main); display:flex; justify-content:space-between;">
+                    Studio Generators
+                    <i class="ph ph-x" style="cursor:pointer;" onclick="toggleStudioPanel()"></i>
+                </h3>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div class="studio-item" onclick="generateContent('study_guide')"><i class="ph-fill ph-book-open"></i> Generate Study Guide</div>
+                    <div class="studio-item" onclick="generateContent('faq')"><i class="ph-fill ph-question"></i> Generate FAQs</div>
+                    <div class="studio-item" onclick="generateContent('flashcards')"><i class="ph-fill ph-cards"></i> Auto-Flashcards (Matrix)</div>
+                    <div class="studio-item" onclick="generateContent('summary')"><i class="ph-fill ph-article"></i> Executive Summary</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Advanced PDF Reader (PDF.js) -->
+        <aside class="ws-reader" id="ws-reader-container">
+            <div id="reader-loading"><div class="spinner"></div><span style="font-weight:600; color:var(--primary); margin-top:16px;">Extracting Text & Rendering...</span></div>
+            
+            <div class="reader-toolbar" id="reader-toolbar" style="display:none;">
+                <div class="reader-controls">
+                    <button onclick="changePage(-1)" title="Previous Page"><i class="ph-bold ph-caret-left"></i></button>
+                    <span class="page-info">Page <span id="page_num"></span> / <span id="page_count"></span></span>
+                    <button onclick="changePage(1)" title="Next Page"><i class="ph-bold ph-caret-right"></i></button>
+                </div>
+                <div class="reader-controls">
+                    <button onclick="zoomPDF(0.25)" title="Zoom In"><i class="ph-bold ph-magnifying-glass-plus"></i></button>
+                    <button onclick="zoomPDF(-0.25)" title="Zoom Out"><i class="ph-bold ph-magnifying-glass-minus"></i></button>
+                </div>
+            </div>
+
+            <div id="pdf-render-container">
+                <div id="reader-placeholder" style="display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0.5; text-align:center; height:100%; width:100%;">
+                    <i class="ph ph-file-pdf" style="font-size:64px; margin-bottom:16px;"></i>
+                    <p style="font-weight:600;">Select a standard to read</p>
+                </div>
+                <canvas id="pdf-canvas" style="display:none;"></canvas>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-new-notebook" class="modal">
+        <div class="modal-card">
+            <h2 style="margin-bottom:8px;">New Notebook</h2>
+            <p style="font-size:13px; color:var(--text-muted); margin-bottom:24px;">Initialize a workspace for a specific code or exam.</p>
+            <input type="text" id="nb-title-input" class="form-input" placeholder="e.g., API 570 Piping Inspector">
+            <div style="display:flex; gap:12px; justify-content:flex-end;">
+                <button class="btn btn-outline" onclick="closeModal('modal-new-notebook')">Cancel</button>
+                <button class="btn btn-primary" onclick="createNotebook()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="source-modal" class="modal">
+        <div class="modal-card" style="text-align:center;">
+            <h2 style="margin-bottom: 24px;">Add Source Document</h2>
+            <button class="btn btn-primary" onclick="triggerFileUpload()" style="width:100%; border-radius:var(--radius-md); margin-bottom:16px; padding: 16px;">
+                <i class="ph-bold ph-upload-simple"></i> Upload PDF (Extracts Text for AI)
+            </button>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom: 24px;">Note: Large PDFs may take a moment to parse text for the RAG engine.</p>
+            <button class="btn btn-outline" style="width:100%; border:none; color:var(--text-muted);" onclick="closeModal('source-modal')">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Setup PDF.js Worker ---
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // --- Storage Logic (v6 - Added source_text for RAG) ---
+        class StorageManager {
+            constructor() { this.dbName = 'InspectorAIPro_V6'; this.version = 6; this.db = null; }
+            async init() {
+                return new Promise((res, rej) => {
+                    const req = indexedDB.open(this.dbName, this.version);
+                    req.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        ['notebooks', 'sources', 'source_text', 'notes', 'chats', 'file_data', 'matrix_rows', 'tasks'].forEach(s => {
+                            if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: 'id' });
+                        });
+                        // Create index for source_text to query by notebook quickly
+                        if(db.objectStoreNames.contains('source_text')) {
+                            const store = req.transaction.objectStore('source_text');
+                            if(!store.indexNames.contains('notebookId')) store.createIndex('notebookId', 'notebookId', {unique: false});
+                        }
+                    };
+                    req.onsuccess = (e) => { this.db = e.target.result; res(); };
+                    req.onerror = (e) => rej(e);
+                });
+            }
+            async getAll(s) { return new Promise(r => { const tx = this.db.transaction(s, 'readonly'); const q = tx.objectStore(s).getAll(); q.onsuccess = () => r(q.result); }); }
+            async get(s, id) { return new Promise(r => { const tx = this.db.transaction(s, 'readonly'); const q = tx.objectStore(s).get(id); q.onsuccess = () => r(q.result); }); }
+            async save(s, d) { return new Promise(r => { const tx = this.db.transaction(s, 'readwrite'); tx.objectStore(s).put(d); tx.oncomplete = () => r(); }); }
+            async delete(s, id) { return new Promise(r => { const tx = this.db.transaction(s, 'readwrite'); tx.objectStore(s).delete(id); tx.oncomplete = () => r(); }); }
+            async getByIndex(s, idx, val) { return new Promise(r => { const tx = this.db.transaction(s, 'readonly'); const index = tx.objectStore(s).index(idx); const q = index.getAll(val); q.onsuccess = () => r(q.result); }); }
+        }
+
+        const storage = new StorageManager();
+        let currentNotebook = null;
+
+        // --- PDF Rendering State ---
+        let pdfDoc = null;
+        let pageNum = 1;
+        let pageRendering = false;
+        let pageNumPending = null;
+        let pdfScale = 1.2;
+        const canvas = document.getElementById('pdf-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- UI Utilities ---
+        const showToast = (message, type = 'success') => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="ph-fill ${type === 'success' ? 'ph-check-circle' : 'ph-warning-circle'}"></i> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => { if(container.contains(toast)) toast.remove(); }, 3500);
+        };
+
+        const switchView = (id) => {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.sidebar .nav-item').forEach(i => i.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            if(id === 'dashboard') renderDashboard();
+            if(id === 'library') renderLibrary();
+        };
+
+        const openModal = (id) => document.getElementById(id).classList.add('active');
+        const closeModal = (id) => document.getElementById(id).classList.remove('active');
+
+        // --- Dashboard & Library ---
+        const renderDashboard = async () => {
+            const nbs = await storage.getAll('notebooks');
+            const list = document.getElementById('dashboard-nb-body');
+            
+            // Stats update
+            document.getElementById('kpi-notebooks').innerText = nbs.length;
+            const sources = await storage.getAll('sources');
+            document.getElementById('kpi-sources').innerText = sources.length;
+            const matrix = await storage.getAll('matrix_rows');
+            document.getElementById('kpi-matrix').innerText = matrix.length;
+
+            if(nbs.length === 0) {
+                list.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px; color:var(--text-muted);">No notebooks found. Start a new project!</td></tr>';
+            } else {
+                list.innerHTML = nbs.sort((a,b)=>b.lastEdited-a.lastEdited).slice(0, 5).map(nb => `
+                    <tr onclick="openWorkspace('${nb.id}')">
+                        <td><b style="color:var(--text-main);">${nb.title}</b></td>
+                        <td>${nb.sourcesCount || 0} docs</td>
+                        <td><span class="prog-tag">Active</span></td>
+                        <td style="color:var(--text-muted); text-align:right;"><i class="ph-bold ph-caret-right"></i></td>
+                    </tr>
+                `).join('');
+            }
+        };
+
+        const renderLibrary = async () => {
+            const nbs = await storage.getAll('notebooks');
+            const container = document.getElementById('full-library-container');
+            container.innerHTML = nbs.map(nb => `
+                <div class="card" style="cursor:pointer;" onclick="openWorkspace('${nb.id}')">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+                        <i class="ph-fill ph-book" style="font-size:32px; color:var(--primary);"></i>
+                        <span class="prog-tag">Updated</span>
+                    </div>
+                    <h3 style="margin-bottom:8px;">${nb.title}</h3>
+                    <p style="font-size:13px; color:var(--text-muted);"><i class="ph ph-files"></i> ${nb.sourcesCount || 0} Sources Indexed</p>
+                </div>
+            `).join('') || '<p>Library is empty.</p>';
+        };
+
+        // --- Workspace Operations ---
+        const openWorkspace = async (id) => {
+            const notebooks = await storage.getAll('notebooks');
+            currentNotebook = notebooks.find(n => n.id === id);
+            
+            // Update last edited
+            currentNotebook.lastEdited = Date.now();
+            await storage.save('notebooks', currentNotebook);
+
+            document.getElementById('ws-notebook-title').innerText = currentNotebook.title;
+            document.getElementById('workspace').classList.add('active');
+            
+            // Load Notes
+            const note = await storage.get('notes', id);
+            document.getElementById('ws-notes-editor').innerHTML = note ? note.content : `<h1>${currentNotebook.title}</h1><p>Start synthesizing your study materials...</p>`;
+            
+            renderSources(); 
+            loadChatHistory(id);
+            renderMatrix();
+        };
+
+        const closeWorkspace = () => { 
+            document.getElementById('workspace').classList.remove('active'); 
+            currentNotebook = null; 
+            renderDashboard(); 
+            // Clear PDF viewer
+            pdfDoc = null;
+            document.getElementById('pdf-canvas').style.display = 'none';
+            document.getElementById('reader-toolbar').style.display = 'none';
+            document.getElementById('reader-placeholder').style.display = 'flex';
+        };
+
+        const switchWsMode = (mode, btn) => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active');
+            document.getElementById('mode-chat').style.display = mode === 'chat' ? 'flex' : 'none';
+            document.getElementById('mode-notes').style.display = mode === 'notes' ? 'block' : 'none';
+            document.getElementById('mode-matrix').style.display = mode === 'matrix' ? 'block' : 'none';
+        };
+
+        // --- Notes Autosave ---
+        let notesTimeout;
+        document.getElementById('ws-notes-editor').addEventListener('input', (e) => {
+            clearTimeout(notesTimeout);
+            notesTimeout = setTimeout(async () => {
+                if(currentNotebook) {
+                    await storage.save('notes', { id: currentNotebook.id, content: e.target.innerHTML });
+                    showToast('Draft saved', 'success');
+                }
+            }, 2000);
+        });
+
+        // --- PDF Upload & Text Extraction (RAG Prep) ---
+        const triggerFileUpload = () => {
+            const inp = document.createElement('input'); 
+            inp.type = 'file'; 
+            inp.accept = '.pdf'; // Restricting to PDF for v2 RAG focus
+            inp.onchange = async (e) => {
+                const f = e.target.files[0]; if(!f) return;
+                closeModal('source-modal');
+                document.getElementById('reader-loading').style.display = 'flex';
+                
+                try {
+                    const id = 'src-' + Date.now();
+                    const arrayBuffer = await f.arrayBuffer();
+                    
+                    // 1. Save File Blob
+                    await storage.save('sources', { id, notebookId: currentNotebook.id, name: f.name, type: 'pdf' });
+                    await storage.save('file_data', { id, buffer: arrayBuffer });
+                    
+                    // 2. Extract Text via PDF.js for RAG
+                    showToast('Extracting text for AI...', 'success');
+                    const typedarray = new Uint8Array(arrayBuffer);
+                    const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                    let fullText = "";
+                    
+                    // Extract first 50 pages to prevent blowing up DB/Memory for massive codes
+                    // In a real app, you'd chunk this better or run a local embedding model.
+                    const pagesToExtract = Math.min(pdf.numPages, 50); 
+                    
+                    for (let i = 1; i <= pagesToExtract; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map(item => item.str).join(' ');
+                        fullText += `\n[Page ${i}]: ${pageText}`;
+                    }
+                    
+                    // Save text context
+                    await storage.save('source_text', { 
+                        id: 'text-' + id, 
+                        notebookId: currentNotebook.id, 
+                        sourceId: id,
+                        sourceName: f.name,
+                        content: fullText 
+                    });
+
+                    currentNotebook.sourcesCount = (currentNotebook.sourcesCount || 0) + 1;
+                    await storage.save('notebooks', currentNotebook);
+                    
+                    renderSources();
+                    showToast('Source added & Indexed for AI!', 'success');
+                    
+                    // Render it immediately
+                    selectSource(id);
+                } catch (err) {
+                    alert("Extraction Error: " + err.message);
+                } finally {
+                    document.getElementById('reader-loading').style.display = 'none';
+                }
+            };
+            inp.click();
+        };
+
+        const renderSources = async () => {
+            const all = await storage.getAll('sources');
+            const mine = all.filter(s => s.notebookId === currentNotebook.id);
+            document.getElementById('ws-sources-list').innerHTML = mine.map(s => `
+                <div class="source-item" id="nav-${s.id}" onclick="selectSource('${s.id}')">
+                    <i class="ph-fill ph-file-pdf" style="color:var(--error);"></i>
+                    <span style="font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${s.name}</span>
+                </div>
+            `).join('') || '<p style="font-size:12px; color:var(--text-muted);">No sources yet.</p>';
+            document.getElementById('ws-notebook-meta').innerText = `${mine.length} SOURCES INDEXED`;
+        };
+
+        // --- PDF Rendering Logic ---
+        const selectSource = async (id) => {
+            document.querySelectorAll('.source-item').forEach(i => i.classList.remove('active'));
+            const navItem = document.getElementById(`nav-${id}`);
+            if(navItem) navItem.classList.add('active');
+
+            const data = await storage.get('file_data', id);
+            if(!data) return;
+
+            document.getElementById('reader-placeholder').style.display = 'none';
+            document.getElementById('reader-loading').style.display = 'flex';
+            
+            try {
+                const typedarray = new Uint8Array(data.buffer);
+                pdfDoc = await pdfjsLib.getDocument(typedarray).promise;
+                document.getElementById('page_count').textContent = pdfDoc.numPages;
+                document.getElementById('reader-toolbar').style.display = 'flex';
+                document.getElementById('pdf-canvas').style.display = 'block';
+                pageNum = 1;
+                renderPage(pageNum);
+            } catch (err) {
+                console.error(err);
+            }
+            document.getElementById('reader-loading').style.display = 'none';
+        };
+
+        const renderPage = (num) => {
+            pageRendering = true;
+            pdfDoc.getPage(num).then(page => {
+                const viewport = page.getViewport({scale: pdfScale});
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const renderContext = { canvasContext: ctx, viewport: viewport };
+                const renderTask = page.render(renderContext);
+
+                renderTask.promise.then(() => {
+                    pageRendering = false;
+                    if (pageNumPending !== null) {
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+                });
+            });
+            document.getElementById('page_num').textContent = num;
+        };
+
+        const queueRenderPage = (num) => {
+            if (pageRendering) { pageNumPending = num; } else { renderPage(num); }
+        };
+
+        const changePage = (offset) => {
+            if (!pdfDoc) return;
+            pageNum += offset;
+            if (pageNum <= 1) pageNum = 1;
+            if (pageNum >= pdfDoc.numPages) pageNum = pdfDoc.numPages;
+            queueRenderPage(pageNum);
+        };
+
+        const zoomPDF = (offset) => {
+            pdfScale += offset;
+            if (pdfScale < 0.5) pdfScale = 0.5;
+            if (pdfScale > 3) pdfScale = 3.0;
+            queueRenderPage(pageNum);
+        };
+
+        // --- NotebookLM Style RAG AI (Source-Grounded) ---
+        const handleEnter = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAIQuery(); } };
+
+        const getContextFromSources = async () => {
+            // Retrieve text chunks from indexedDB
+            const texts = await storage.getByIndex('source_text', 'notebookId', currentNotebook.id);
+            if(texts.length === 0) return "";
+            
+            let contextStr = "BACKGROUND CONTEXT FROM UPLOADED DOCUMENTS:\n\n";
+            texts.forEach(t => {
+                // To avoid massive payloads, we truncate if it's absurdly large, 
+                // but Gemini 1.5/2.5 can handle a lot. Let's cap at 50,000 chars per source for browser memory safety.
+                contextStr += `--- START OF SOURCE: ${t.sourceName} ---\n`;
+                contextStr += t.content.substring(0, 50000) + "\n";
+                contextStr += `--- END OF SOURCE ---\n\n`;
+            });
+            return contextStr;
+        };
+
+        const sendAIQuery = async () => {
+            const inp = document.getElementById('ai-input'), q = inp.value.trim(), key = localStorage.getItem('gemini_key');
+            if(!q) return;
+            if(!key) { showToast("API Key required. Check Settings.", "error"); return; }
+            
+            const hist = document.getElementById('chat-history');
+            hist.insertAdjacentHTML('beforeend', `<div class="message user">${q}</div>`); 
+            inp.value = ''; hist.scrollTop = hist.scrollHeight;
+            
+            // Add loading indicator
+            const loadingId = 'load-' + Date.now();
+            hist.insertAdjacentHTML('beforeend', `<div class="message ai" id="${loadingId}"><i class="ph-spin ph-spinner"></i> Analyzing sources...</div>`);
+            hist.scrollTop = hist.scrollHeight;
+
+            try {
+                // 1. Fetch Context
+                const context = await getContextFromSources();
+                
+                // 2. Build Prompt (NotebookLM style strict grounding)
+                const systemPrompt = `You are an expert technical inspector assistant. 
+                Answer the user's question using ONLY the provided context from their uploaded documents.
+                If the answer is not in the context, say "I cannot find this information in the uploaded sources."
+                Always cite your sources using inline brackets, e.g., [Source: Name of Document, Page X].
+                Format your response using Markdown (bolding, lists, etc.) for readability.`;
+
+                const finalPrompt = `${systemPrompt}\n\n${context}\n\nUSER QUESTION: ${q}`;
+
+                // Using gemini-2.5-flash-preview-09-2025 as per system prompt instructions for text gen
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: finalPrompt }] }] })
+                });
+                
+                if(!res.ok) throw new Error("API Request Failed");
+                const data = await res.json(); 
+                
+                let rawText = data.candidates[0].content.parts[0].text;
+                
+                // Parse markdown and custom citations
+                let formatted = marked.parse(rawText);
+                // Style citations: [Source: API 570, Page 12] -> <span class="citation">...</span>
+                formatted = formatted.replace(/\[Source:.*?\]/gi, match => `<span class="citation">${match}</span>`);
+
+                // Update UI
+                document.getElementById(loadingId).innerHTML = formatted;
+                
+                // Save Chat
+                const chat = await storage.get('chats', currentNotebook.id) || { id: currentNotebook.id, messages: [] };
+                chat.messages.push({ role: 'user', content: q }, { role: 'ai', content: formatted });
+                await storage.save('chats', chat);
+
+            } catch (err) { 
+                console.error(err); 
+                document.getElementById(loadingId).innerHTML = `<span style="color:var(--error);">Failed to connect to AI engine. Check API key.</span>`;
+            }
+            hist.scrollTop = hist.scrollHeight;
+        };
+
+        const loadChatHistory = async (id) => {
+            const chat = await storage.get('chats', id) || { id, messages: [] };
+            const hist = document.getElementById('chat-history');
+            hist.innerHTML = `<div class="message ai"><b>NotebookLM Engine Ready.</b><br>I have indexed your sources for <i>${currentNotebook.title}</i>. Ask me anything and I will cite my answers directly from the documents.</div>`;
+            chat.messages.forEach(m => {
+                hist.insertAdjacentHTML('beforeend', `<div class="message ${m.role}">${m.content}</div>`);
+            });
+            hist.scrollTop = hist.scrollHeight;
+        };
+
+        // --- Studio Panel (Generators) ---
+        const toggleStudioPanel = () => {
+            document.getElementById('studio-panel').classList.toggle('open');
+        };
+
+        const generateContent = async (type) => {
+            const key = localStorage.getItem('gemini_key');
+            if(!key) { showToast("API Key required.", "error"); return; }
+            if(!currentNotebook || (currentNotebook.sourcesCount || 0) === 0) { showToast("Please upload sources first.", "error"); return; }
+
+            toggleStudioPanel();
+            showToast("AI is generating content. This may take 10-20 seconds...", "success");
+            
+            try {
+                const context = await getContextFromSources();
+                let prompt = "";
+                
+                if(type === 'study_guide') {
+                    prompt = `Based strictly on the provided context, generate a comprehensive Study Guide. Include 1. Overview, 2. Key Definitions, 3. Critical Requirements/Parameters. Format in HTML. \n\n Context: ${context}`;
+                } else if (type === 'faq') {
+                    prompt = `Based strictly on the context, generate 10 Frequently Asked Questions (with detailed answers and citations). Format in HTML. \n\n Context: ${context}`;
+                } else if (type === 'flashcards') {
+                    prompt = `Generate 5 flashcards based on the context. Respond ONLY with a valid JSON array of objects. Format: [{"concept": "concept name", "explanation": "definition", "source": "source name"}]. \n\n Context: ${context}`;
+                } else {
+                    prompt = `Generate an Executive Summary of the provided context. Format in HTML. \n\n Context: ${context}`;
+                }
+
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await res.json();
+                let resultText = data.candidates[0].content.parts[0].text;
+
+                if(type === 'flashcards') {
+                    // Extract JSON from markdown codeblock if present
+                    const jsonMatch = resultText.match(/\[.*\]/s);
+                    if(jsonMatch) {
+                        const cards = JSON.parse(jsonMatch[0]);
+                        for(let c of cards) {
+                            await storage.save('matrix_rows', {
+                                id: 'row-' + Date.now() + Math.random(),
+                                notebookId: currentNotebook.id,
+                                code: c.concept,
+                                flashcard: c.explanation,
+                                remark: c.source
+                            });
+                        }
+                        renderMatrix();
+                        showToast("Flashcards added to Matrix!", "success");
+                        switchWsMode('matrix', document.querySelectorAll('.tab-btn')[2]);
+                    }
+                } else {
+                    // Append to Notes
+                    const editor = document.getElementById('ws-notes-editor');
+                    // Remove markdown formatting from AI HTML output if any
+                    let htmlContent = resultText.replace(/```html/g, '').replace(/```/g, '');
+                    editor.innerHTML += `<hr><h2>AI Generated Content</h2>` + htmlContent;
+                    await storage.save('notes', { id: currentNotebook.id, content: editor.innerHTML });
+                    showToast("Content appended to Drafting Pad!", "success");
+                    switchWsMode('notes', document.querySelectorAll('.tab-btn')[1]);
+                }
+
+            } catch (err) {
+                console.error(err);
+                showToast("Generation failed.", "error");
+            }
+        };
+
+        // --- Matrix (Category 6/7 prep) ---
+        const renderMatrix = async () => {
+            const all = await storage.getAll('matrix_rows');
+            const mine = all.filter(r => r.notebookId === currentNotebook.id);
+            const body = document.getElementById('matrix-body');
+            body.innerHTML = mine.map(r => `
+                <tr data-id="${r.id}">
+                    <td contenteditable="true" onblur="saveCell('${r.id}', 'code', this.innerText)">${r.code || '...'}</td>
+                    <td contenteditable="true" onblur="saveCell('${r.id}', 'flashcard', this.innerText)">${r.flashcard || '...'}</td>
+                    <td contenteditable="true" onblur="saveCell('${r.id}', 'remark', this.innerText)">${r.remark || '...'}</td>
+                    <td style="text-align:center;">
+                        <button class="btn btn-outline" style="padding: 6px; border-color:var(--error); color:var(--error);" onclick="deleteRow('${r.id}')"><i class="ph ph-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        };
+
+        const addMatrixRow = async () => {
+            await storage.save('matrix_rows', { id: 'row-' + Date.now(), notebookId: currentNotebook.id, code: '', flashcard: '', remark: '' }); 
+            renderMatrix();
+        };
+
+        const saveCell = async (id, col, val) => { 
+            const row = await storage.get('matrix_rows', id); 
+            if(row) { row[col] = val; await storage.save('matrix_rows', row); } 
+        };
+        const deleteRow = async (id) => { 
+            await storage.delete('matrix_rows', id); 
+            renderMatrix(); 
+        };
+
+        const createNotebook = async () => {
+            const t = document.getElementById('nb-title-input').value.trim(); if(!t) return;
+            const nb = { id: 'nb-' + Date.now(), title: t, sourcesCount: 0, lastEdited: Date.now() };
+            await storage.save('notebooks', nb); 
+            document.getElementById('nb-title-input').value = ''; 
+            closeModal('modal-new-notebook'); 
+            renderDashboard();
+            showToast("Notebook Created", "success");
+        };
+
+        // --- Init ---
+        const saveSettings = () => { localStorage.setItem('gemini_key', document.getElementById('api-key').value); showToast("API Key Saved!"); };
+        const toggleTheme = () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); };
+        const clearAllData = () => { if(confirm("DESTROY ALL DATA?")) { indexedDB.deleteDatabase(storage.dbName); localStorage.clear(); location.reload(); } };
+
+        window.onload = async () => {
+            await storage.init();
+            if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
+            const key = localStorage.getItem('gemini_key');
+            if(document.getElementById('api-key')) document.getElementById('api-key').value = key || '';
+            renderDashboard();
+        };
+    </script>
+</body>
+</html>

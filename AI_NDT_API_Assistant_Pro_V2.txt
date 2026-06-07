@@ -1,0 +1,330 @@
+esk Pro — Ultimate Upgrade Plan v2.0
+🎯 Vision: NotebookLM-Class Technical Learning Platform
+Transform the current app into a professional-grade, NotebookLM-inspired technical study platform specifically designed for NDT & API inspectors. The app will feature source-grounded AI, inline citations, one-click content generators, interactive quizzes, and a knowledge graph — all in a single HTML file with premium aesthetics.
+📋 Complete Feature Inventory (50+ Features)
+⭐ CATEGORY 1: Source-Grounded AI with Inline Citations (NotebookLM Core)
+The #1 most important NotebookLM feature. Currently, the AI chat just sends raw queries to Gemini with ZERO context from uploaded documents.
+Feature
+Description
+1.1 Document Text Extraction
+When PDF/DOCX is uploaded, extract full text and store in IndexedDB alongside the file blob
+1.2 RAG-Style Context Injection
+When user asks a question, include relevant source text chunks in the Gemini prompt
+1.3 Inline Citations
+AI responses include [Source: ASME V, p.42] clickable references that scroll the PDF reader to that location
+1.4 Multi-Source Cross-Reference
+AI can synthesize answers across ALL sources in a notebook, not just one
+1.5 Source Confidence Indicator
+Show confidence badge (🟢 High / 🟡 Medium / 🔴 Low) based on how well the answer matches sources
+1.6 "Ask about this page"
+Button in PDF reader that captures current page text and sends it as context to AI
+Technical Approach:
+Upload PDF → PDF.js getTextContent() → Store text chunks in IndexedDB
+User asks question → Retrieve all source texts → Build system prompt:
+  "You are a technical assistant. Answer ONLY based on these sources:
+   [Source 1: ASME V] ... text chunks ...
+   [Source 2: API 1104] ... text chunks ...
+   Always cite your sources as [Source: name, page X]"
+⭐ CATEGORY 2: Studio Panel — One-Click Content Generators
+Inspired by NotebookLM's Studio panel. A floating action panel in the workspace that generates structured content from sources.
+Feature
+Description
+2.1 Study Guide Generator
+One-click: AI creates structured study guide with key topics, terms, and practice questions from all uploaded sources
+2.2 Briefing Document
+One-click: AI creates executive summary with key themes and actionable inspection insights
+2.3 FAQ Generator
+One-click: AI generates 10-20 relevant Q&A pairs from the source material
+2.4 Timeline Generator
+One-click: AI extracts chronological events/revisions from standards and creates visual timeline
+2.5 Flashcard Auto-Generator
+One-click: AI generates flashcards → auto-populates Study Matrix table
+2.6 Comparison Table
+One-click: AI compares requirements across multiple standards (e.g., ASME vs API)
+2.7 Glossary Builder
+One-click: AI extracts technical terms and definitions from sources
+2.8 Key Equations & Formulas
+One-click: AI extracts all formulas/equations and renders with KaTeX
+UI Design: Floating panel on the right side of workspace with animated icon buttons, similar to NotebookLM's studio sidebar.
+⭐ CATEGORY 3: Interactive Quiz & Assessment System
+Feature
+Description
+3.1 AI Quiz Generator
+Generate multiple-choice, true/false, and fill-in-blank questions from sources
+3.2 Quiz Mode UI
+Full-screen quiz experience with timer, score tracking, and immediate feedback
+3.3 Answer Verification with Citations
+Each answer explanation links back to the source passage
+3.4 Difficulty Progression
+SM-2 algorithm tracks which questions are hard → asks them more frequently
+3.5 Exam Simulator
+Timed exam mode that simulates real API/NDT certification test conditions
+3.6 Score Analytics
+Track quiz scores over time, identify weak topics, generate improvement plan
+UI: Modal-based quiz interface with progress bar, animated transitions between questions, confetti on high scores.
+⭐ CATEGORY 4: Knowledge Graph Visualization
+Feature
+Description
+4.1 Concept Mapping
+AI analyzes all sources to identify key concepts and relationships
+4.2 Interactive Mind Map
+Visual node-link diagram showing how concepts connect across sources
+4.3 Click-to-Navigate
+Click any node → jump to the relevant source passage
+4.4 Cross-Notebook Links
+Show connections between concepts across different notebooks
+4.5 Gap Analysis
+AI highlights topics that are mentioned but not well-covered in your sources
+Technical Approach: Use Canvas API or a lightweight library (vis-network) rendered inline. AI generates the graph structure as JSON, frontend renders it interactively.
+⭐ CATEGORY 5: Advanced PDF Reader (Original Quality)
+Feature
+Description
+5.1 PDF.js Canvas Rendering
+Replace iframe with PDF.js for pixel-perfect original quality rendering
+5.2 Page Navigation
+Prev/Next buttons, page number input, thumbnail strip
+5.3 Zoom Controls
+Fit-to-width, fit-to-page, custom zoom (+/-), pinch zoom on touch
+5.4 Text Search (Ctrl+F)
+Search within the PDF with highlight of matches
+5.5 Table of Contents
+Auto-extract PDF outline/bookmarks into a navigable tree
+5.6 Reading Progress Bar
+Visual progress indicator + auto-save current page to IndexedDB
+5.7 Bookmark System
+Users can bookmark specific pages with notes
+5.8 Text Selection → Actions
+Select text → context menu: "Add to Matrix", "Ask AI about this", "Copy to Notes"
+5.9 Annotation Layer
+Highlight text in yellow/green/blue, add sticky notes (stored in IndexedDB)
+5.10 Split View
+Side-by-side view of two documents for comparison
+5.11 Night Mode Reader
+Inverted colors / sepia mode for comfortable reading
+⭐ CATEGORY 6: Smart Note-Taking & Drafting Pad
+Feature
+Description
+6.1 Rich Text Toolbar
+Bold, italic, heading levels, bullet/number lists, code blocks, tables
+6.2 Auto-Save
+Debounced save to IndexedDB every 3 seconds on edit
+6.3 Markdown Support
+Write in markdown, render as rich text
+6.4 AI Writing Assistant
+Select text → "Expand", "Simplify", "Translate", "Explain technical term"
+6.5 Citation Insert
+Drag a source passage into notes → auto-adds citation link
+6.6 Voice-to-Text
+Browser Speech Recognition API for dictating notes
+6.7 Export Options
+Export notes as PDF, DOCX, Markdown, or plain text
+6.8 Version History
+Track note revisions, revert to previous versions
+6.9 Templates
+Pre-built templates for inspection reports, study summaries, checklists
+⭐ CATEGORY 7: Enhanced Spaced Repetition & Review System
+Feature
+Description
+7.1 SM-2 Algorithm
+Real spaced repetition with intervals: 1d → 3d → 7d → 14d → 30d → 90d
+7.2 Review Session UI
+Card-flip interface with "Again / Hard / Good / Easy" buttons
+7.3 Desktop Notifications
+Browser Notification API for upcoming reviews
+7.4 Daily Digest
+Morning summary showing all cards due today
+7.5 Priority Color Coding
+Overdue (red pulse) → Today (orange) → Upcoming (blue) → Mastered (green)
+7.6 Calendar Heatmap
+GitHub-style heatmap in Analytics showing study activity per day
+7.7 Streak System
+Real streak tracking based on actual daily study activity
+7.8 Achievement Badges
+Gamification: "7-Day Streak", "100 Cards Reviewed", "Protocol Master"
+⭐ CATEGORY 8: Google Drive Enhanced Integration
+Feature
+Description
+8.1 User-Configurable Client ID
+Input field in Settings for OAuth2 Client ID
+8.2 Google Picker API
+Browse and select files from Google Drive directly (no URL pasting)
+8.3 Download & Cache
+Download Drive files to IndexedDB for offline reading
+8.4 Auto-Sync on Edit
+Push changes to Drive automatically after editing
+8.5 Conflict Resolution
+Timestamp comparison + visual diff when conflicts detected
+8.6 Sync Status Indicator
+Persistent indicator in sidebar: "Last synced 2 min ago" / "Syncing..." / "Offline"
+8.7 Token Refresh
+Detect expired OAuth tokens and re-authenticate gracefully
+8.8 Selective Sync
+Choose which notebooks to sync vs keep local-only
+8.9 Import from Drive Folder
+Batch-import all PDFs from a specific Drive folder
+⭐ CATEGORY 9: Premium UI/UX Overhaul
+Feature
+Description
+9.1 Google Fonts (Inter)
+Professional typography throughout
+9.2 Glassmorphism Panels
+Frosted glass effect on sidebar and modals
+9.3 Gradient Brand Identity
+Animated gradient on brand icon and key CTA buttons
+9.4 Toast Notifications
+Replace all alert() with elegant slide-in toasts
+9.5 Skeleton Loading
+Animated skeleton placeholders while data loads
+9.6 Smooth Page Transitions
+CSS keyframe animations between views
+9.7 Full Dark Mode
+Every single component properly themed
+9.8 Responsive Layout
+Tablet + mobile breakpoints with collapsible sidebar
+9.9 Custom Scrollbars
+Slim, themed scrollbars across all panels
+9.10 Empty States
+Beautiful illustrated empty states with action prompts
+9.11 Micro-Animations
+Hover effects, focus rings, button press feedback, card entrance animations
+9.12 Command Palette
+Ctrl+K quick-access command palette (search notebooks, switch views, toggle theme)
+9.13 Keyboard Shortcuts
+Full keyboard navigation (Ctrl+N new notebook, Ctrl+S save, etc.)
+⭐ CATEGORY 10: Audio Overview (NotebookLM Signature)
+Feature
+Description
+10.1 Text-to-Speech
+Use Web Speech API to read notes and AI responses aloud
+10.2 AI Audio Summary
+Generate a spoken summary of source material using AI + TTS
+10.3 Playback Controls
+Play/Pause, speed control (0.5x - 2x), skip forward/back
+10.4 Reading Along
+Highlight text in sync with audio playback
+⭐ CATEGORY 11: Advanced Analytics Dashboard
+Feature
+Description
+11.1 Study Time Chart
+Weekly/monthly bar chart of deep work hours
+11.2 Protocol Mastery Radar
+Radar/spider chart showing mastery across different standards
+11.3 Review Accuracy Trend
+Line chart of quiz/review accuracy over time
+11.4 Calendar Heatmap
+365-day activity heatmap like GitHub contributions
+11.5 Productivity Score
+Composite score based on consistency, accuracy, and depth
+11.6 Learning Path Suggestions
+AI recommends what to study next based on analytics
+⭐ CATEGORY 12: Bug Fixes & Missing Implementations
+Fix
+Description
+12.1
+Implement missing renderLibrary() function
+12.2
+Implement missing openWorkspaceFromBanner() function
+12.3
+Fix notes auto-save (currently doesn't persist to IndexedDB)
+12.4
+Fix nav active state highlighting
+12.5
+Add all missing CSS styles (.source-item, .chat-*, .editor-*, .message)
+12.6
+Fix dark mode for workspace, modals, and all inner elements
+12.7
+Fix Google Drive multipart boundary format
+12.8
+Add error handling to all IndexedDB operations
+12.9
+Fix multi-turn AI conversation (include chat history in API calls)
+12.10
+Add proper input field styling
+🏗️ Implementation Priority & Phases
+Phase 1: Foundation (Critical Fixes + UI) — Do First
+Category 12: All bug fixes
+Category 9: UI/UX overhaul (styles, dark mode, toasts, animations)
+Category 6.1-6.2: Rich text toolbar + auto-save
+Phase 2: Core Intelligence — NotebookLM DNA
+Category 1: Source-grounded AI with citations
+Category 5: Advanced PDF reader
+Category 2: Studio Panel generators
+Phase 3: Active Learning — Retention Engine
+Category 3: Interactive quiz system
+Category 7: Spaced repetition (SM-2)
+Category 4: Knowledge graph
+Phase 4: Ecosystem — Cloud & Audio
+Category 8: Google Drive integration
+Category 10: Audio overview / TTS
+Category 11: Advanced analytics
+🔧 Technical Architecture
+┌──────────────────────────────────────────────────────────┐
+│                   INSPECTOR AI DESK PRO v2               │
+├──────────────┬───────────────┬────────────────────────────┤
+│   SIDEBAR    │   VIEWPORT    │     PDF READER PANEL       │
+│              │               │                            │
+│ • Nav Items  │ Dashboard     │ PDF.js Canvas Renderer     │
+│ • Notebooks  │ Library       │ • Page Controls            │
+│ • Quick      │ Analytics     │ • Zoom / Search            │
+│   Actions    │ Settings      │ • Bookmarks                │
+│ • Sync       │ ────────────  │ • Annotations              │
+│   Status     │ Workspace:    │ • Text Selection Actions   │
+│              │ • AI Chat     │ • Reading Progress         │
+│              │ • Notes Pad   │ • Night Mode               │
+│              │ • Matrix      │                            │
+│              │ • Quiz Mode   │                            │
+│              │ • Mind Map    │                            │
+│              │ ────────────  │                            │
+│              │ Studio Panel  │                            │
+│              │ (Floating)    │                            │
+└──────────────┴───────────────┴────────────────────────────┘
+                         │
+              ┌──────────┴──────────┐
+              │     IndexedDB       │
+              │  ┌───────────────┐  │ 
+              │  │ notebooks     │  │     ┌─────────────┐
+              │  │ sources       │  │     │ Gemini API  │
+              │  │ source_text   │ ◄────► │ (AI Engine) │
+              │  │ notes         │  │     └─────────────┘
+              │  │ chats         │  │
+              │  │ file_data     │  │     ┌─────────────┐
+              │  │ matrix_rows   │  │     │ Google      │
+              │  │ tasks         │  │ ◄──►│ Drive API   │
+              │  │ quizzes       │  │     └─────────────┘
+              │  │ bookmarks     │  │
+              │  │ annotations   │  │     ┌─────────────┐
+              │  │ performance   │  │     │ Web Speech  │
+              │  │ achievements  │  │     │ API (TTS)   │
+              │  └───────────────┘  │     └─────────────┘
+              └─────────────────────┘
+User Review Required
+IMPORTANT
+Scope Decision: This is a massive upgrade (50+ features). I can implement ALL of it, but it will take time. Should I:
+Option A: Implement everything in one go (the app will grow to ~200-250KB)
+Option B: Implement in phases — start with Phase 1+2, then iterate
+IMPORTANT
+PDF.js: Adding PDF.js (~300KB CDN) gives us full PDF control (text extraction, annotations, page tracking). This is REQUIRED for source-grounded AI citations. Do you approve using it?
+WARNING
+Single File: Keeping everything in one HTML file is manageable but the file will be large. Are you OK with this or should I split into HTML + CSS + JS files?
+Open Questions
+Google Drive Client ID: Do you have one, or should I make the app work without it (with an input field for later)?
+Gemini Model: Upgrade to gemini-2.0-flash or gemini-2.5-flash for better quality?
+Language: Add Vietnamese interface option? Or keep English only?
+Knowledge Graph: Use simple Canvas drawing or include vis-network library (~150KB)?
+Quiz Data: Should quiz results sync to Google Drive too?
+Verification Plan
+Automated Tests
+Browser console zero errors on all views
+IndexedDB CRUD for all 12+ object stores
+PDF upload → text extraction → AI citation flow end-to-end
+Quiz generation → answer → SM-2 interval calculation
+Google Drive connect → push → pull → conflict detection
+Visual Verification
+Screenshot comparison: light vs dark mode, all views
+Mobile responsive check at 768px and 375px breakpoints
+Animation performance check (60fps target)
+Functional Tests
+Upload 3 PDFs → Ask cross-reference question → Verify citations
+Generate study guide → Verify all content comes from sources
+Complete 10-card quiz → Verify SM-2 scheduling
+Google Drive sync → Close browser → Reopen → Verify data restored

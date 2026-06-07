@@ -1,0 +1,24 @@
+# Temp and backup files
+scratch_*.py
+patch_*.py
+*.rar
+*.docx
+*.bak
+__pycache__/
+workspace_data/
+.tmp.drivedownload/
+.tmp.driveupload/
+Launch_InspectorAI.bat
+Run_HR_App.bat
+app_server.py
+check_git_existence.py
+create_startup_shortcut.ps1
+extract_original.py
+extract_via_temp.py
+gdrive_sync.js
+read_transcript.py
+search_backups.py
+temp.js
+test_click.html
+InspectorAI_Backup_*.json
+*Backup*.json

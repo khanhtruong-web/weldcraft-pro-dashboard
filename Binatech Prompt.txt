@@ -1,0 +1,89 @@
+Tôi là chủ doanh nghiệp NDT for Industry và Offshore cho cả Fabrication và In Services. Công ty tôi tên là Binatech https://binatech.com.vn/
+Hiện tại có 5 nhân sự chủ chốt để xây dựng công ty. Công ty đã thành lập được 2 năm nhưng mới có website chưa có phần mềm quản lý nhân sự và thiết bị NDT, hợp đồng, báo giá, quản lý về training nhân sự, báo giá và tender.
+Hãy đóng vai là chủ doanh nghiệp tư nhân chuyên về Nondisctructive Testing for welding để xây dựng hệ thống công ty hoàn chỉnh bằng phần mềm quản lý có nhiều nhân sự có thể đăng nhập vào phần mềm. Tôi lấy googlework space làm trung tâm. Tất cả dữ liệu điều lưu và googledrive và googlesheet để lưu lại tất cả hoạt động phần mềm. Các ứng dụng khác như powerpoits, google calendar…sẽ ứng dụng tùy mục đích.
+hãy đóng vai là chuyên gia về phần mềm máy tính và chuyên gia quản lý data base tôi đang cần một chương trình nhập và quản lý dữ liệu của công ty quản lý nhân sự và thiết bị NDT, hợp đồng, báo giá, quản lý về training nhân sự, báo giá và tender, sử dụng trên nền tảng web chạy qua Vercel miễn phí và tích hợp được vào website công ty đã có domain.
+1. Phần mềm sẽ có chức năng nhập nhiệu theo các yêu cầu sau
+- import data base cho phần mềm, data base có thể nhập manual (có form nhập liệu riêng) cũng có thể upload excel file. Trong trường hợp upload excel file thì phần mềm phải tự kiểm tra sự tồn tại của tag thiết bị để bổ sung, nếu đã tồn tại thì bỏ qua.
+Hãy tạo ra nhiều tab như sau:
+- Marketting
+- Acounting
+- HR; list nhân sự đầy đủ thông tin cá nhân, năm kinh nghiệm… hợp đồng số, hạn hợp đồng.
+- Project control
+- Technical Dossier
+- Training
+- Equipment
+- NDT report control: Có nhiều tính năng liên quan làm báo cáo nhiều phương pháp NDT
+- Tender Dossier
+2. Giao diện App. App sẽ có preview như dạng table excel sheet, các cột sẽ có sẵn các chế độ filter để lọc dữ liệu, sort để sắp xếp dữ liệu. có các nút chức năng nhập dữ liệu như đã miêu tả ở trên, menu khi nhập liệu menu nhập sẽ chia màn hình thành 2 nửa, nửa bên trái vẫn là preview master data, nửa bên phải là form nhập liệu. Trong khi nhập liệu các dữ liệu đã có sẵn vẫn được show lên, cho phép chọn và sửa đổi. App cũng có chức năng search. khi nhập thông tin thì app sẽ tự gợi ý theo dạng list down để xem trước.
+3. Áp có tính năng auto email nhắc hạn chứng chỉ thiết bị,  nhân sự hết hợp đồng…
+4. Có AI chuyên dụng quản lý data chuyên sâu, hỏi đáp trả kết quả 
+Dưới đây là Prompt Chuyên sâu về Kiến trúc Hệ thống (System Architecture Prompt). Anh hãy copy toàn bộ nội dung dưới đây đưa cho AI (Cursor, Claude, hoặc ChatGPT) để nó viết ra bộ khung API hoàn chỉnh:
+[COPY NỘI DUNG BÊN DƯỚI]
+Role: You are an Expert Cloud Architect and Full-Stack Next.js Developer specializing in integrating Vercel applications with the Google Workspace Ecosystem (Google Sheets, Drive, Gmail, Apps Script) functioning as a Headless ERP.
+Project Context: I am building a core infrastructure for an NDT (Non-Destructive Testing) company's ERP. The frontend is hosted on Vercel using Next.js (App Router). The entire backend database and file storage will rely on Google Workspace to minimize costs and maximize collaborative tracking.
+Objective: Do not build the UI modules yet. I need you to design and write the core backend architecture, API routes, and utility functions that will serve as the "bridge" between Next.js and Google Workspace.
+Please provide the exact code, folder structure, and step-by-step setup instructions for the following Core Infrastructure Pillars:
+Pillar 1: Authentication & Google Cloud Setup
+Explain the optimal way to authenticate a serverless Next.js app with Google APIs without requiring user login for every action.
+Provide instructions on setting up a Google Cloud Service Account.
+Explain which APIs to enable (Google Sheets API, Google Drive API).
+Show how to securely store and structure the credentials.json inside Vercel Environment Variables.
+Pillar 2: The Database Connector (Next.js to Google Sheets)
+Write a robust utility class/function in Next.js (lib/googleSheets.js) using the googleapis npm package. It must include:
+getRows(sheetName): Fetch data and format it into a clean JSON array (handling headers dynamically).
+addRow(sheetName, data): Append a new row.
+updateRow(sheetName, idColumn, idValue, newData): Find a row by a unique ID (e.g., Equipment Tag) and update specific cells.
+Crucial: Implement a caching strategy or debounce mechanism to avoid hitting Google Sheets API rate limits (quota limits).
+Pillar 3: The File Vault (Next.js to Google Drive)
+NDT involves heavy PDF reports, WPS/PQR documents, and scanned certificates. Write an API route and utility function (lib/googleDrive.js) that:
+Accepts a file upload from the frontend (e.g., via FormData or base64).
+Uploads the file directly to a specific Google Drive Folder ID using the Service Account.
+Automatically sets file permissions to "Anyone with the link can view" (so it can be previewed in the Next.js app).
+Returns the direct webViewLink and webContentLink to be saved into the Google Sheet.
+Pillar 4: The Automation Engine (Vercel Cron vs. Google Apps Script)
+To automate email reminders (e.g., Equipment calibration expiring, personnel certs expiring):
+Since Vercel's free tier has strict cron job limitations, design an architecture where we use Google Apps Script (GAS) attached to the Master Google Sheet as the automation engine.
+Write a sample Google Apps Script code snippet that runs daily, checks a "Status" column, and sends an HTML email via GmailApp to the admin if a date is within 30 days of expiry.
+Output Requirement:
+Provide the Next.js directory structure for these utilities.
+Provide the exact code for lib/google.js (Auth), lib/sheets.js (CRUD), and lib/drive.js (Uploads).
+Provide the Google Apps Script code for the automated email trigger.
+Role: You are an Expert Full-Stack Developer, Database Architect, and an industry expert in Non-Destructive Testing (NDT) management systems.
+Project Overview: I am building a comprehensive ERP/Management Web Application for "Binatech", an NDT company operating in Fabrication and In-Service sectors. The app will be deployed for free on Vercel, integrated into a custom domain, and will serve 5 key management users.
+Tech Stack:
+Frontend: React / Next.js (hosted on Vercel).
+UI Framework: Tailwind CSS, Material-UI (or Shadcn UI) for complex data grids and split-screen layouts.
+Backend/Database: Google Workspace ecosystem. Google Sheets API (as the primary database for structured data), Google Drive API (for storing files like PDFs, reports, CVs).
+Automation: Google Apps Script or Vercel Serverless Functions (for Cron Jobs).
+AI Integration: LLM API (OpenAI/Gemini) connected via LangChain/LlamaIndex for querying the Google Sheets database (RAG).
+Core System Requirements:
+Please design the architecture and provide the code/implementation steps for the following functionalities:
+1. Data Ingestion & Sync (Manual & Bulk):
+Create robust forms for manual data entry.
+Develop an Excel/CSV upload feature. The system MUST parse the Excel file, cross-check the existing Google Sheets database using unique identifiers (e.g., Equipment Tag Number, Employee ID, Report Number). If the ID exists, skip or prompt for update; if new, append to the database.
+2. UI/UX Architecture (Data-Heavy Approach):
+Split-Screen Layout: When adding/editing data, the screen divides into two panels. Left panel: A master Data Grid preview (like an advanced Excel sheet) showing existing records. Right panel: The input/edit form.
+Data Grid Features: The preview table must include advanced filtering, multi-column sorting, and a global search bar.
+Smart Input: Real-time search and dropdown auto-suggest when typing into form fields, pulling relational data from other sheets (e.g., typing a Welder ID automatically suggests names from the HR sheet).
+3. Core Modules (Tabs) & Database Schema:
+Provide the data structure and interface components for the following tabs:
+Marketing: Client database, lead tracking, meeting logs.
+Accounting: Invoices, payment status, operational expenses.
+HR (Personnel Management): Personal details, years of experience, employment contract dates, and crucially, NDT Certifications (Method, Level, Expiry dates for ASNT/PCN/API) and medical/vision test validities.
+Project Control: Project ID, scope of work, timeline, assigned personnel, progress tracking.
+Technical Dossier: Repository for WPS/PQR, scanplans, NDT procedures, and specific acceptance criteria (ASME, API, AWS).
+Training: Internal/External training logs, hours tracked, upcoming training schedules.
+Equipment: Unique Tag No, serial numbers, models (e.g., PAUT machines, TR probes, Calibration blocks), Calibration Certificate dates, next due dates, and maintenance logs.
+NDT Report Control: Master log of all NDT reports generated. Must include Joint No, Method (RT, UT, MT, PT, PAUT), result status (Accept/Reject), Inspector name, and link to the PDF stored in Google Drive.
+Tender Dossier: Tracking bidding documents, equipment/personnel matrices submitted, tender status, and deadlines.
+4. Automation & Alerts:
+Implement a background job (Cron) that scans the Google Sheets database daily.
+Trigger automated email alerts to management via NodeMailer or Google Apps Script for: Equipment calibration expiring in 30 days, personnel certifications/contracts expiring in 60/30 days, and pending tender deadlines.
+5. Dedicated AI Assistant (Database Chatbot):
+Integrate a conversational AI interface.
+The AI must be able to read the structured data in Google Sheets and answer questions like: "Which Level II PAUT technicians are available next week?", "List all equipment whose calibration expires this month", or "What was our revenue from Project X?".
+Output Request:
+Start by outlining the precise Google Sheets Database Schema (Columns for each tab).
+Provide the Next.js project structure.
+Write the core logic for the Excel upload & duplicate checking utility.
+Write the React component for the Split-Screen UI (Table + Form).

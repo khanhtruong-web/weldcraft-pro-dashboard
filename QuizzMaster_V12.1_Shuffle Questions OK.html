@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizMaster v3.6 - Universal Hybrid (Shuffle Fix)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <style>
+        /* --- ECO GLASS THEME (GIỮ NGUYÊN TỪ V3.2) --- */
+        :root {
+            --primary-color: #2e7d32;
+            --primary-light: #a5d6a7;
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            --bg-gradient: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            color: #1a2e1a;
+            min-height: 100vh;
+        }
+
+        /* GLASS COMPONENTS */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .glass-btn {
+            background: rgba(46, 125, 50, 0.9);
+            color: white;
+            border: none;
+            backdrop-filter: blur(4px);
+            transition: 0.3s;
+        }
+        .glass-btn:hover {
+            background: #1b5e20;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3);
+        }
+        .glass-btn:disabled { background: #ccc; transform: none; box-shadow: none; }
+
+        /* LAYOUT */
+        .sidebar {
+            min-height: 100vh;
+            background: rgba(255, 255, 255, 0.4);
+            border-right: 1px solid rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            padding-top: 20px;
+        }
+        .nav-link { color: #1b5e20; font-weight: 600; margin: 8px 15px; border-radius: 10px; cursor: pointer; }
+        .nav-link:hover, .nav-link.active { background: rgba(46, 125, 50, 0.15); color: var(--primary-color); }
+        .main-content { padding: 40px; max-width: 1600px; margin: 0 auto; }
+
+        /* QUIZ CARDS */
+        .question-card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .question-card img {
+            max-width: 100%;
+            height: auto;
+            max-height: 350px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: block;
+            border: 1px solid #e0e0e0;
+            object-fit: contain;
+        }
+
+        .option-label {
+            background: #f8f9fa;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: flex-start;
+        }
+        .option-label:hover { background: #fff; border-color: #a5d6a7; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .option-label.selected { background: #e8f5e9; border-color: var(--primary-color); font-weight: 600; }
+        .correct-answer { background-color: #c8e6c9 !important; border-color: #2e7d32 !important; }
+        .wrong-answer { background-color: #ffcdd2 !important; border-color: #c62828 !important; }
+
+        /* UTILS */
+        .slide-hidden { display: none; }
+        .slide-active { display: block; animation: floatIn 0.3s ease-out; }
+        @keyframes floatIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .palette-btn { width: 38px; height: 38px; border-radius: 10px; border: 1px solid #ddd; background: #fff; margin: 4px; font-weight: 600; color: #1b5e20; }
+        .palette-btn.answered { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .palette-btn.flagged { background: #fbc02d; color: #fff; border-color: #fbc02d; }
+        .palette-btn.active-q { border: 2px solid #1b5e20; transform: scale(1.1); }
+        
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3 col-lg-2 sidebar d-none d-md-block">
+            <h4 class="text-center mb-5 fw-bold text-success"><i class="bi bi-radioactive"></i> UT Master <br><small style="font-size:0.5em; opacity:0.7">v3.6 Universal</small></h4>
+            <ul class="nav flex-column">
+                <li class="nav-item"><a class="nav-link active" onclick="switchTab('dashboard')"><i class="bi bi-grid-fill me-2"></i> Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" onclick="switchTab('library')"><i class="bi bi-collection-play-fill me-2"></i> Library</a></li>
+                <li class="nav-item"><a class="nav-link" onclick="switchTab('upload')"><i class="bi bi-cloud-arrow-up-fill me-2"></i> Upload</a></li>
+                <li class="nav-item"><a class="nav-link" onclick="switchTab('mistakes')"><i class="bi bi-bug-fill me-2"></i> Mistakes Bank</a></li>
+            </ul>
+        </div>
+
+        <div class="col-md-9 col-lg-10 main-content">
+            
+            <div class="d-md-none mb-3 glass-panel p-2">
+                <button class="btn btn-sm text-success fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#mobileMenu">
+                    <i class="bi bi-list"></i> Menu
+                </button>
+                <div class="collapse mt-2" id="mobileMenu">
+                    <a class="d-block p-2 text-dark text-decoration-none" onclick="switchTab('dashboard')">Dashboard</a>
+                    <a class="d-block p-2 text-dark text-decoration-none" onclick="switchTab('library')">Library</a>
+                    <a class="d-block p-2 text-dark text-decoration-none" onclick="switchTab('upload')">Upload</a>
+                    <a class="d-block p-2 text-dark text-decoration-none" onclick="switchTab('mistakes')">Mistakes</a>
+                </div>
+            </div>
+
+            <div id="view-dashboard" class="view-section active">
+                <h3 class="mb-4 text-success fw-bold">Inspector Dashboard</h3>
+                <div class="row mb-4">
+                    <div class="col-md-4"><div class="glass-panel p-4 border-start border-5 border-success"><div class="small fw-bold text-muted">TOTAL QUIZZES</div><div class="h2 fw-bold" id="stat-total-attempts">0</div></div></div>
+                    <div class="col-md-4"><div class="glass-panel p-4 border-start border-5 border-primary"><div class="small fw-bold text-muted">AVG SCORE</div><div class="h2 fw-bold text-primary" id="stat-avg-score">0%</div></div></div>
+                    <div class="col-md-4"><div class="glass-panel p-4 border-start border-5 border-danger"><div class="small fw-bold text-muted">PENDING MISTAKES</div><div class="h2 fw-bold text-danger" id="stat-wrong-total">0</div></div></div>
+                </div>
+                <div class="glass-panel p-4">
+                    <div class="d-flex justify-content-between mb-3"><h5>Recent Activity</h5><button class="btn btn-sm btn-outline-danger" onclick="clearHistory()">Reset History</button></div>
+                    <div class="table-responsive">
+                        <table class="table table-borderless table-hover"><thead class="border-bottom"><tr><th>Date</th><th>Quiz Name</th><th>Score</th></tr></thead><tbody id="history-table-body"></tbody></table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-library" class="view-section">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="text-success fw-bold">Quiz Library</h3>
+                    <input type="text" class="form-control glass-panel border-0 w-25" id="librarySearch" placeholder="Search..." onkeyup="renderLibrary()">
+                </div>
+                <div id="library-list" class="row g-4"></div>
+            </div>
+
+            <div id="view-upload" class="view-section">
+                <div class="glass-panel p-5 mx-auto shadow-lg" style="max-width: 800px;">
+                    <h3 class="text-center mb-4 text-success fw-bold">Import Quiz Data</h3>
+                    <div class="alert alert-light border small">
+                        <i class="bi bi-cpu-fill text-primary"></i> 
+                        <strong>Universal Adapter Active:</strong> Unique IDs enabled. Shuffling is now 100% safe.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Quiz Title</label>
+                        <input type="text" class="form-control glass-panel" id="newQuizName" placeholder="e.g. UT Level II - Chapter 1">
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">1. Questions File</label>
+                            <input type="file" class="form-control" id="fileQuestions" accept=".docx, .pdf">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">2. Answer Key File</label>
+                            <input type="file" class="form-control" id="fileAnswers" accept=".docx, .pdf">
+                        </div>
+                    </div>
+                    <button class="glass-btn w-100 mt-4 py-3 fw-bold rounded-pill" onclick="processAndSave()">
+                        <span id="btnProcessText"><i class="bi bi-magic"></i> SMART PROCESS & SAVE</span>
+                        <div id="loadingSpinner" class="spinner-border spinner-border-sm ms-2" style="display:none"></div>
+                    </button>
+                    <p id="statusMsg" class="mt-3 text-center fw-bold text-primary"></p>
+                </div>
+            </div>
+
+            <div id="view-mistakes" class="view-section">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="text-danger fw-bold"><i class="bi bi-exclamation-octagon"></i> Mistake Bank</h3>
+                    <div>
+                        <button class="btn btn-success rounded-pill shadow me-2 fw-bold" onclick="practiceMistakes()" id="btnRetakeMistakes">
+                            <i class="bi bi-recycle"></i> Retake All Mistakes
+                        </button>
+                        <button class="btn btn-outline-secondary rounded-pill" onclick="clearMistakes()">Clear Bank</button>
+                    </div>
+                </div>
+                <div id="mistake-list" class="row g-4"></div>
+            </div>
+
+            <div id="view-quiz" class="view-section">
+                <div class="glass-panel sticky-top p-3 mb-4 shadow-sm" style="z-index: 1000; top: 10px;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div style="max-width: 60%;">
+                            <h5 class="m-0 fw-bold text-success text-truncate" id="quizTitleDisplay">Quiz Title</h5>
+                            <small class="text-muted" id="questionProgress">Q 1/10</small>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <span class="badge bg-danger p-2 fs-6 shadow-sm" id="timerDisplay">00:00</span>
+                            <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="exitQuiz()">Exit</button>
+                            <button class="glass-btn btn-sm px-4 rounded-pill" onclick="finishQuiz()">SUBMIT</button>
+                        </div>
+                    </div>
+                    <div class="progress" style="height:8px; background:#e9ecef;"><div class="progress-bar bg-success" id="quizProgressBar" style="width: 0%"></div></div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-9 mb-4">
+                        <div id="questionsList"></div>
+                        <div id="slideControls" class="d-flex justify-content-between mt-4">
+                            <button class="btn btn-light border px-4 rounded-pill fw-bold" onclick="navSlide(-1)" id="btnPrev">Previous</button>
+                            <button class="btn btn-warning px-4 rounded-pill text-white fw-bold" onclick="toggleFlag()">Flag</button>
+                            <button class="glass-btn px-5 rounded-pill fw-bold" onclick="navSlide(1)" id="btnNext">Next</button>
+                        </div>
+                    </div>
+                    <div class="col-lg-3">
+                        <div class="glass-panel p-3 sticky-top" style="top: 100px;">
+                            <h6 class="fw-bold mb-3 text-muted border-bottom pb-2">Navigator</h6>
+                            <div class="d-flex flex-wrap gap-1 justify-content-center" id="questionPalette"></div>
+                            <div class="mt-3 small text-center text-muted">
+                                <span class="badge bg-success me-1">&nbsp;</span>Answered 
+                                <span class="badge bg-warning ms-2">&nbsp;</span>Flagged
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="startQuizModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-panel border-0">
+            <div class="modal-header border-bottom-0"><h5 class="modal-title fw-bold text-success">Quiz Settings</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="fw-bold">View Mode</label><select class="form-select bg-light border-0" id="viewModeInput"><option value="slide">Slide Mode (Focus)</option><option value="list">List Mode (Scroll)</option></select></div>
+                <div class="mb-3"><label class="fw-bold">Timer (minutes)</label><input type="number" class="form-control bg-light border-0" id="quizTimerInput" value="45"></div>
+                <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="shuffleInput" checked><label>Shuffle Questions</label></div>
+                <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="instantFeedbackInput"><label>Instant Feedback (Study Mode)</label></div>
+            </div>
+            <div class="modal-footer border-top-0"><button type="button" class="glass-btn w-100 py-2 rounded-pill fw-bold" onclick="startQuizNow()">START QUIZ</button></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- INIT ---
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    
+    let appState = { activeQuiz: null, currentQIndex: 0, timer: null, settings: {}, userAnswers: {}, flags: {}, shuffledQuestions: [] };
+    
+    // --- DATABASE MANAGER ---
+    const DB = {
+        saveQuiz: (name, data) => {
+            try {
+                let library = JSON.parse(localStorage.getItem('qm_library') || '[]');
+                library.push({ id: Date.now().toString(), name: name, data: data, date: new Date().toLocaleDateString() });
+                localStorage.setItem('qm_library', JSON.stringify(library));
+            } catch(e) { alert("Storage full! Please delete old quizzes."); }
+        },
+        getLibrary: () => JSON.parse(localStorage.getItem('qm_library') || '[]'),
+        deleteQuiz: (id) => {
+            localStorage.setItem('qm_library', JSON.stringify(DB.getLibrary().filter(q => q.id !== id)));
+            renderLibrary();
+        },
+        saveAttempt: (quizName, score, total, wrongList) => {
+            let history = JSON.parse(localStorage.getItem('qm_history') || '[]');
+            history.unshift({ date: new Date().toLocaleString(), quiz: quizName, score, total, percent: Math.round((score/total)*100) });
+            localStorage.setItem('qm_history', JSON.stringify(history.slice(0, 50))); 
+
+            if(wrongList.length > 0) {
+                let mistakes = JSON.parse(localStorage.getItem('qm_mistakes') || '[]');
+                wrongList.forEach(wq => {
+                    const exists = mistakes.some(m => m.text === wq.text); 
+                    if(!exists) mistakes.push(wq);
+                });
+                if(mistakes.length > 50) mistakes = mistakes.slice(mistakes.length - 50);
+                try { localStorage.setItem('qm_mistakes', JSON.stringify(mistakes)); } catch(e) {}
+            }
+            updateDashboard();
+        },
+        clearData: (key) => { localStorage.removeItem(key); updateDashboard(); renderMistakes(); }
+    };
+
+    // --- NAVIGATION ---
+    function switchTab(id) {
+        document.querySelectorAll('.view-section, .nav-link').forEach(el => el.classList.remove('active'));
+        document.getElementById(`view-${id}`).classList.add('active');
+        if(id === 'dashboard') updateDashboard();
+        if(id === 'library') renderLibrary();
+        if(id === 'mistakes') renderMistakes();
+    }
+
+    function updateDashboard() {
+        const h = JSON.parse(localStorage.getItem('qm_history') || '[]');
+        const m = JSON.parse(localStorage.getItem('qm_mistakes') || '[]');
+        document.getElementById('stat-total-attempts').innerText = h.length;
+        document.getElementById('stat-avg-score').innerText = (h.length ? Math.round(h.reduce((a,c)=>a+c.percent,0)/h.length) : 0) + '%';
+        document.getElementById('stat-wrong-total').innerText = m.length;
+        
+        const tbody = document.getElementById('history-table-body');
+        tbody.innerHTML = h.length ? '' : '<tr><td colspan="3" class="text-center text-muted">No history yet.</td></tr>';
+        h.slice(0,5).forEach(r => tbody.innerHTML += `<tr><td><small>${r.date}</small></td><td>${r.quiz}</td><td class="fw-bold ${r.percent>=50?'text-success':'text-danger'}">${r.score}/${r.total}</td></tr>`);
+    }
+
+    function renderLibrary() {
+        const list = document.getElementById('library-list');
+        const term = document.getElementById('librarySearch').value.toLowerCase();
+        const libs = DB.getLibrary().filter(q => q.name.toLowerCase().includes(term));
+        list.innerHTML = libs.length ? '' : '<div class="col-12 text-center text-muted p-5">Library Empty.</div>';
+        
+        libs.forEach(q => {
+            list.innerHTML += `
+            <div class="col-md-6 col-xl-4">
+                <div class="glass-panel p-4 h-100 position-relative">
+                    <button class="btn btn-sm text-danger position-absolute top-0 end-0 m-2" onclick="DB.deleteQuiz('${q.id}')"><i class="bi bi-trash"></i></button>
+                    <h5 class="fw-bold text-success text-truncate mb-2">${q.name}</h5>
+                    <p class="small text-muted mb-3">${q.data.questions.length} Questions • ${q.date}</p>
+                    <button class="glass-btn w-100 rounded-pill py-2" onclick="initQuiz('${q.id}')"><i class="bi bi-play-fill"></i> Start Quiz</button>
+                </div>
+            </div>`;
+        });
+    }
+
+    // --- UNIVERSAL PROCESSING ENGINE (THE UPGRADE) ---
+    async function processAndSave() {
+        const name = document.getElementById('newQuizName').value.trim();
+        const qFile = document.getElementById('fileQuestions').files[0];
+        const aFile = document.getElementById('fileAnswers').files[0];
+        const status = document.getElementById('statusMsg');
+        const spinner = document.getElementById('loadingSpinner');
+
+        if (!name || !qFile || !aFile) return alert("Please fill all fields!");
+        
+        spinner.style.display = 'inline-block';
+        status.innerText = "Processing (Universal Mode with UID)...";
+
+        try {
+            // 1. Convert Files to Normalized HTML/Text
+            let rawQHTML = "";
+            if(qFile.name.endsWith('.docx')) {
+                const res = await mammoth.convertToHtml({arrayBuffer: await qFile.arrayBuffer()});
+                rawQHTML = res.value; 
+            } else if (qFile.name.endsWith('.pdf')) {
+                rawQHTML = await convertPdfToHtml(qFile);
+            }
+
+            // 2. Prepare Question Text (Inject Image Markers)
+            const textWithMarkers = normalizeHtmlToText(rawQHTML);
+
+            // 3. Smart Parse Questions (Generates UIDs)
+            let questions = parseQuestionsSmart(textWithMarkers);
+
+            // 4. Parse Answers (Stream Mode)
+            let aText = "";
+            if(aFile.name.endsWith('.docx')) {
+                aText = (await mammoth.extractRawText({arrayBuffer: await aFile.arrayBuffer()})).value;
+            } else if (aFile.name.endsWith('.pdf')) {
+                aText = await convertPdfToText(aFile);
+            }
+            let rawAnswers = parseAnswersStream(aText, questions.length);
+
+            // 5. MAP ANSWERS TO UNIQUE IDs (Critical Fix)
+            let finalAnswers = {};
+            questions.forEach(q => {
+                // q.id is the "Display ID" (e.g. "1"), q.uid is the internal "Safe ID"
+                let key = rawAnswers[q.id]; 
+                if(key) finalAnswers[q.uid] = key;
+            });
+
+            if (!questions.length) throw new Error("No questions detected.");
+            
+            DB.saveQuiz(name, { questions, answers: finalAnswers });
+            alert("Quiz Saved Successfully! Safe Shuffle Enabled.");
+            switchTab('library');
+            document.getElementById('newQuizName').value = "";
+            document.getElementById('fileQuestions').value = "";
+            document.getElementById('fileAnswers').value = "";
+            
+        } catch (e) {
+            console.error(e);
+            status.innerText = "Error: " + e.message;
+        } finally {
+            spinner.style.display = 'none';
+        }
+    }
+
+    // --- HELPER: HTML TO TEXT + MARKERS ---
+    function normalizeHtmlToText(html) {
+        return html
+            .replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, '\n[IMG:$1]\n')
+            .replace(/<\/p>|<br\s*\/?>|<hr\s*\/?>/gi, '\n')
+            .replace(/<[^>]+>/g, '') 
+            .replace(/&nbsp;/g, ' ');
+    }
+
+    // --- PARSER: QUESTIONS (SMART + UID) ---
+    function parseQuestionsSmart(text) {
+        let clean = text.replace(/(?:Question|Câu|Q)\s*(\d+)/gi, '\n$1.')
+                        .replace(/\t/g, ' ').replace(/\r/g, '');
+        
+        let lines = clean.split('\n');
+        let qs = [];
+        let cur = null;
+        let ts = Date.now();
+        
+        let rgxQ = /^\s*(\d+)[\.\)\-]\s*(.*)/;
+        let rgxOpt = /^\s*([a-eA-E])[\.\)\-]\s*(.*)/;
+
+        lines.forEach(line => {
+            line = line.trim();
+            if(!line || line.match(/page\s*\d+|trang\s*\d+|copyright/i)) return; 
+
+            if(line.startsWith('[IMG:')) {
+                const src = line.substring(5, line.length - 1);
+                const imgTag = `<br><img src="${src}" /><br>`;
+                if(cur) {
+                    if(cur.options.length > 0) cur.options[cur.options.length-1].text += imgTag;
+                    else cur.text += imgTag;
+                }
+                return;
+            }
+
+            let mQ = line.match(rgxQ);
+            let mOpt = line.match(rgxOpt);
+
+            if(mQ) {
+                if(cur) qs.push(cur);
+                // Assign a UNIQUE INTERNAL ID (uid) for safe shuffling
+                cur = { 
+                    uid: `q_${ts}_${qs.length}`, 
+                    id: mQ[1], // Keep original for display
+                    text: mQ[2], 
+                    options: [] 
+                };
+            } else if(mOpt && cur) {
+                cur.options.push({ key: mOpt[1].toUpperCase(), text: mOpt[2] });
+            } else if(cur) {
+                if(cur.options.length > 0) cur.options[cur.options.length-1].text += " " + line;
+                else cur.text += " " + line;
+            }
+        });
+        if(cur) qs.push(cur);
+        return qs;
+    }
+
+    // --- PARSER: ANSWERS (STREAM) ---
+    function parseAnswersStream(text, limit) {
+        let tokens = text.replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/);
+        let map = {};
+        
+        for(let i=0; i<tokens.length; i++) {
+            let t = tokens[i];
+            if(t.match(/^\d+$/)) {
+                let qNum = parseInt(t);
+                for(let k=1; k<=5; k++) {
+                    if(i+k >= tokens.length) break;
+                    let next = tokens[i+k].toUpperCase();
+                    if(next.match(/^[A-E]$/)) {
+                        map[qNum] = next;
+                        i += k; 
+                        break;
+                    }
+                }
+            }
+        }
+        return map;
+    }
+
+    // --- PDF ENGINE (V3.2 - KEEPS IMAGES) ---
+    async function convertPdfToHtml(file) {
+        const data = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument(data).promise;
+        let fullHtml = "";
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const ops = await page.getOperatorList();
+            const textContent = await page.getTextContent();
+            
+            let items = textContent.items.map(item => ({
+                type: 'text',
+                y: item.transform[5], 
+                val: item.str + (item.hasEOL ? '<br>' : ' ')
+            }));
+
+            for (let j = 0; j < ops.fnArray.length; j++) {
+                if (ops.fnArray[j] === pdfjsLib.OPS.paintImageXObject) {
+                    const imgName = ops.argsArray[j][0];
+                    let matrix = [1, 0, 0, 1, 0, 0];
+                    for(let k = j-1; k >= 0; k--) {
+                        if(ops.fnArray[k] === pdfjsLib.OPS.transform) { matrix = ops.argsArray[k]; break; }
+                    }
+                    try {
+                        const imgObj = await page.objs.get(imgName);
+                        if(imgObj) {
+                            const imgHtml = await pdfImageToHtml(imgObj);
+                            items.push({ type: 'img', y: matrix[5], val: `<br>${imgHtml}<br>` });
+                        }
+                    } catch(err) {}
+                }
+            }
+            items.sort((a, b) => b.y - a.y);
+            fullHtml += items.map(it => it.val).join("") + "<hr>";
+        }
+        return fullHtml;
+    }
+
+    async function pdfImageToHtml(imgObj) {
+        const canvas = document.createElement('canvas');
+        canvas.width = imgObj.width; canvas.height = imgObj.height;
+        const ctx = canvas.getContext('2d');
+        const imgData = ctx.createImageData(imgObj.width, imgObj.height);
+        
+        if (imgObj.kind === 'RGB') {
+            let j = 0;
+            for (let i = 0; i < imgObj.data.length; i += 3) {
+                imgData.data[j++] = imgObj.data[i]; imgData.data[j++] = imgObj.data[i + 1]; imgData.data[j++] = imgObj.data[i + 2]; imgData.data[j++] = 255;
+            }
+        } else if (imgObj.kind === 'RGBA') { imgData.data.set(imgObj.data);
+        } else if (imgObj.kind === 'Grayscale') {
+             let j = 0; for (let i = 0; i < imgObj.data.length; i++) {
+                const val = imgObj.data[i]; imgData.data[j++] = val; imgData.data[j++] = val; imgData.data[j++] = val; imgData.data[j++] = 255;
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+        return `<img src="${canvas.toDataURL()}" />`;
+    }
+
+    async function convertPdfToText(file) {
+        const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+        let txt = "";
+        for(let i=1; i<=pdf.numPages; i++) txt += (await (await pdf.getPage(i)).getTextContent()).items.map(s=>s.str).join(" ");
+        return txt;
+    }
+
+    // --- MISTAKE HANDLING (Fix for Retake Mode) ---
+    function renderMistakes() {
+        const list = document.getElementById('mistake-list');
+        const m = JSON.parse(localStorage.getItem('qm_mistakes') || '[]');
+        const btn = document.getElementById('btnRetakeMistakes');
+        
+        btn.disabled = m.length === 0;
+        list.innerHTML = '';
+        
+        if (m.length === 0) {
+            list.innerHTML = '<div class="col-12 text-center text-success p-5 glass-panel"><h4>Clean Record!</h4><p>No mistakes found. Great job!</p></div>';
+            return;
+        }
+
+        m.forEach(q => {
+            list.innerHTML += `
+            <div class="col-12">
+                <div class="question-card border-start border-5 border-danger p-4">
+                    <h6 class="fw-bold text-dark">${q.text}</h6>
+                    <div class="mt-3 small">
+                        <span class="badge bg-success me-2">Correct: ${q.correctAnswer}</span>
+                        <span class="badge bg-danger">You chose: ${q.yourAnswer}</span>
+                    </div>
+                </div>
+            </div>`;
+        });
+    }
+
+    function practiceMistakes() {
+        const m = JSON.parse(localStorage.getItem('qm_mistakes') || '[]');
+        if(m.length === 0) return alert("No mistakes to retake!");
+
+        let sessionQuestions = JSON.parse(JSON.stringify(m));
+        let sessionAnswers = {};
+
+        sessionQuestions.forEach((q, index) => {
+            const newId = "R" + index; 
+            sessionAnswers[newId] = q.correctAnswer;
+            // IMPORTANT: For retake, UID is the newID
+            q.uid = newId; 
+            q.id = index + 1; 
+        });
+
+        appState.activeQuiz = { questions: sessionQuestions, answers: sessionAnswers };
+        appState.quizName = "Review: Mistakes Retake";
+        new bootstrap.Modal(document.getElementById('startQuizModal')).show();
+    }
+
+    // --- QUIZ EXECUTION ---
+    function initQuiz(id) {
+        const lib = DB.getLibrary().find(q => q.id === id);
+        appState.activeQuiz = lib.data;
+        appState.quizName = lib.name;
+        new bootstrap.Modal(document.getElementById('startQuizModal')).show();
+    }
+
+    function startQuizNow() {
+        bootstrap.Modal.getInstance(document.getElementById('startQuizModal')).hide();
+        appState.settings = {
+            mode: document.getElementById('viewModeInput').value,
+            shuffle: document.getElementById('shuffleInput').checked,
+            instant: document.getElementById('instantFeedbackInput').checked,
+            time: parseInt(document.getElementById('quizTimerInput').value)
+        };
+        
+        appState.currentQIndex = 0;
+        appState.userAnswers = {};
+        appState.flags = {};
+        
+        let qs = JSON.parse(JSON.stringify(appState.activeQuiz.questions));
+        if(appState.settings.shuffle) {
+            qs.sort(()=>Math.random()-0.5);
+        }
+        appState.shuffledQuestions = qs;
+
+        renderQuizUI();
+        startTimer(appState.settings.time);
+        switchTab('quiz');
+        document.getElementById('quizTitleDisplay').innerText = appState.quizName;
+    }
+
+    function renderQuizUI() {
+        const list = document.getElementById('questionsList');
+        const pal = document.getElementById('questionPalette');
+        list.innerHTML = ''; pal.innerHTML = '';
+        document.getElementById('slideControls').style.display = appState.settings.mode==='slide'?'flex':'none';
+
+        appState.shuffledQuestions.forEach((q, idx) => {
+            // Using UID for unique identification in DOM
+            let html = `
+            <div class="question-card ${appState.settings.mode==='slide' && idx!==0 ? 'slide-hidden' : 'slide-active'}" id="qcard-${idx}" data-qid="${q.uid}">
+                <div class="d-flex justify-content-between">
+                    <h5 class="fw-bold mb-3 lh-base text-dark"><span class="badge bg-success me-2 rounded-pill">Q${idx+1}</span> ${q.text}</h5>
+                </div>
+                <div class="options-container">
+                    ${q.options.map(o => `
+                    <label class="option-label" id="lbl-${q.uid}-${o.key}" onclick="selectAns('${q.uid}', '${o.key}', ${idx})">
+                        <input type="radio" class="form-check-input me-3 mt-1" name="q_${q.uid}" value="${o.key}">
+                        <div><strong>${o.key}.</strong> ${o.text}</div>
+                    </label>`).join('')}
+                </div>
+                <div id="feedback-${q.uid}" class="mt-3" style="display:none"></div>
+            </div>`;
+            list.innerHTML += html;
+            pal.innerHTML += `<button class="palette-btn" id="pal-${idx}" onclick="jumpTo(${idx})">${idx+1}</button>`;
+        });
+        updateProgress();
+    }
+
+    function selectAns(uid, key, idx) {
+        appState.userAnswers[uid] = key; // Use UID to key answers
+        const card = document.getElementById(`qcard-${idx}`);
+        card.querySelectorAll('.option-label').forEach(l => l.classList.remove('selected'));
+        document.getElementById(`lbl-${uid}-${key}`).classList.add('selected');
+        document.querySelector(`input[name="q_${uid}"][value="${key}"]`).checked = true;
+        document.getElementById(`pal-${idx}`).classList.add('answered');
+        
+        if(appState.settings.instant) {
+            const corr = appState.activeQuiz.answers[uid]; // Lookup by UID
+            const fb = document.getElementById(`feedback-${uid}`);
+            fb.style.display = 'block';
+            if(key === corr) {
+                fb.innerHTML = '<div class="alert alert-success border-success"><i class="bi bi-check-circle-fill"></i> Correct!</div>';
+                document.getElementById(`lbl-${uid}-${key}`).classList.add('correct-answer');
+            } else {
+                fb.innerHTML = `<div class="alert alert-danger border-danger"><i class="bi bi-x-circle-fill"></i> Incorrect. Answer: <strong>${corr}</strong></div>`;
+                document.getElementById(`lbl-${uid}-${key}`).classList.add('wrong-answer');
+                const cEl = document.getElementById(`lbl-${uid}-${corr}`);
+                if(cEl) cEl.classList.add('correct-answer');
+            }
+        }
+        updateProgress();
+    }
+
+    function jumpTo(idx) {
+        if(appState.settings.mode !== 'slide') {
+            document.getElementById(`qcard-${idx}`).scrollIntoView({behavior:'smooth', block:'center'});
+            return;
+        }
+        document.getElementById(`qcard-${appState.currentQIndex}`).classList.replace('slide-active','slide-hidden');
+        document.getElementById(`qcard-${idx}`).classList.replace('slide-hidden','slide-active');
+        document.querySelectorAll('.palette-btn').forEach(b => b.classList.remove('active-q'));
+        document.getElementById(`pal-${idx}`).classList.add('active-q');
+        
+        appState.currentQIndex = idx;
+        const btnNext = document.getElementById('btnNext');
+        if(idx === appState.shuffledQuestions.length-1) {
+            btnNext.innerText = "FINISH";
+            btnNext.classList.replace('glass-btn','btn-success');
+            btnNext.onclick = finishQuiz;
+        } else {
+            btnNext.innerText = "Next";
+            btnNext.classList.replace('btn-success','glass-btn');
+            btnNext.onclick = () => navSlide(1);
+        }
+        document.getElementById('btnPrev').disabled = idx===0;
+        updateProgress();
+    }
+
+    function navSlide(d) {
+        const n = appState.currentQIndex + d;
+        if(n >= 0 && n < appState.shuffledQuestions.length) jumpTo(n);
+    }
+    
+    function toggleFlag() {
+        const i = appState.currentQIndex;
+        // Use UID for flag tracking
+        const uid = appState.shuffledQuestions[i].uid;
+        appState.flags[uid] = !appState.flags[uid];
+        document.getElementById(`pal-${i}`).classList.toggle('flagged');
+    }
+
+    function updateProgress() {
+        const pct = (Object.keys(appState.userAnswers).length / appState.shuffledQuestions.length) * 100;
+        document.getElementById('quizProgressBar').style.width = pct+'%';
+        document.getElementById('questionProgress').innerText = `Q ${appState.currentQIndex+1} / ${appState.shuffledQuestions.length}`;
+    }
+
+    function startTimer(m) {
+        clearInterval(appState.timer);
+        if(!m) return document.getElementById('timerDisplay').innerText = "∞";
+        let s = m * 60;
+        appState.timer = setInterval(() => {
+            s--;
+            const min = Math.floor(s/60);
+            const sec = s%60;
+            document.getElementById('timerDisplay').innerText = `${min}:${sec < 10 ? '0'+sec : sec}`;
+            if(s<=0) { clearInterval(appState.timer); finishQuiz(); }
+        }, 1000);
+    }
+
+    function finishQuiz() {
+        clearInterval(appState.timer);
+        if(!confirm("Submit answers?")) return;
+        let score = 0, wrong = [];
+        appState.shuffledQuestions.forEach(q => {
+            const u = appState.userAnswers[q.uid];
+            const c = appState.activeQuiz.answers[q.uid];
+            if(u===c) score++;
+            else wrong.push({...q, correctAnswer:c, yourAnswer:u||'Skipped'});
+        });
+        
+        DB.saveAttempt(appState.quizName, score, appState.shuffledQuestions.length, wrong);
+        alert(`Quiz Finished!\nYour Score: ${score} / ${appState.shuffledQuestions.length}\nCheck the Dashboard for details.`);
+        switchTab('dashboard');
+    }
+    
+    function clearHistory() { if(confirm("Clear all history?")) DB.clearData('qm_history'); }
+    function clearMistakes() { if(confirm("Clear mistake bank?")) DB.clearData('qm_mistakes'); }
+    function exitQuiz() { if(confirm("Quit quiz? Progress will be lost.")) { clearInterval(appState.timer); switchTab('dashboard'); } }
+
+    window.onload = updateDashboard;
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

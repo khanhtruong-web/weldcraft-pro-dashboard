@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Structure Dashboard V20.1 - Enhanced Filters</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --primary-bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-light: #6b7280;
+            --accent-blue: #2563eb;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-orange: #f59e0b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            top: 0; left: 0;
+            background: #ffffff;
+            border-right: 1px solid #e5e7eb;
+            padding: 20px;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .brand {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--accent-blue);
+        }
+
+        .filter-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-light); margin-bottom: 5px; }
+        .form-control-sm, .form-select-sm { background-color: #f9fafb; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; }
+        .btn-apply { background: var(--accent-blue); color: white; font-weight: 600; border: none; width: 100%; border-radius: 6px; padding: 8px; }
+        .btn-reset { background: white; color: var(--text-light); border: 1px solid #d1d5db; font-weight: 600; width: 100%; border-radius: 6px; padding: 8px; }
+        .btn-clear-db { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; font-weight: 600; width: 100%; border-radius: 6px; padding: 8px; margin-top: 10px; font-size: 0.8rem; }
+        .btn-clear-db:hover { background: #fecaca; }
+
+        /* MAIN CONTENT */
+        .main-content { margin-left: var(--sidebar-width); padding: 25px; }
+
+        /* KPI GRID */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .kpi-card { background: var(--card-bg); border-radius: 10px; padding: 20px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .kpi-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 15px; }
+        .icon-blue { background: #eff6ff; color: var(--accent-blue); }
+        .icon-green { background: #ecfdf5; color: var(--accent-green); }
+        .icon-orange { background: #fffbeb; color: var(--accent-orange); }
+        .icon-red { background: #fef2f2; color: var(--accent-red); }
+        .icon-purple { background: #f3e8ff; color: #9333ea; }
+        .kpi-label { font-size: 0.8rem; color: var(--text-light); font-weight: 500; }
+        .kpi-value { font-size: 1.6rem; font-weight: 700; color: var(--text-main); margin: 5px 0; }
+        .kpi-sub { font-size: 0.75rem; color: #9ca3af; }
+
+        /* CHARTS & TABS */
+        .nav-tabs .nav-link { color: var(--text-light); font-weight: 600; border: none; border-bottom: 3px solid transparent; }
+        .nav-tabs .nav-link.active { color: var(--accent-blue); border-bottom: 3px solid var(--accent-blue); background: transparent; }
+        
+        .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 25px; }
+        .chart-box { background: var(--card-bg); border-radius: 10px; padding: 20px; border: 1px solid #e5e7eb; height: 380px; }
+        .box-title { font-weight: 600; font-size: 1rem; color: var(--text-main); margin-bottom: 15px; }
+
+        /* TABLE */
+        .table-container { background: var(--card-bg); border-radius: 10px; border: 1px solid #e5e7eb; overflow: hidden; }
+        .table-toolbar { padding: 10px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f9fafb; }
+        .table-responsive { max-height: 600px; overflow-y: auto; }
+        .table { margin-bottom: 0; font-size: 0.8rem; }
+        .table thead th { background: #f3f4f6; color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; position: sticky; top: 0; border-bottom: 2px solid #e5e7eb; vertical-align: middle; white-space: nowrap; z-index: 10; }
+        .table tfoot th { position: sticky; bottom: 0; background: #fff7ed; color: #9a3412; font-size: 0.75rem; font-weight: 700; border-top: 2px solid #fdba74; z-index: 10; }
+
+        .badge-status { padding: 3px 6px; border-radius: 4px; font-weight: 600; font-size: 0.7rem; display: inline-block; }
+        .st-acc { background: #d1fae5; color: #065f46; }
+        .st-rej { background: #fee2e2; color: #991b1b; }
+        .st-pending { background: #f3f4f6; color: #6b7280; }
+        
+        .col-drawing { min-width: 150px; }
+        .bg-light-col { background-color: #f8fafc; }
+        
+        /* Pagination Controls */
+        .page-ctrl { display: flex; align-items: center; gap: 5px; }
+        .page-ctrl button { font-size: 0.75rem; font-weight: 700; }
+        .page-ctrl span { font-size: 0.75rem; font-weight: 700; background: white; padding: 5px 10px; border: 1px solid #d1d5db; border-radius: 4px; }
+
+        /* LOADING OVERLAY */
+        #loadingOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.9); z-index: 9999;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid var(--accent-blue); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text { margin-top: 15px; font-weight: 600; color: var(--text-main); }
+        
+        #storageIndicator { font-size: 0.7rem; color: var(--accent-green); display: none; margin-top: 5px; }
+
+        /* AI Feature Styles */
+        .ai-btn-glow { background: linear-gradient(135deg, #4f46e5, #9333ea); color: white !important; border: none; box-shadow: 0 4px 15px rgba(147, 51, 234, 0.4); transition: all 0.3s; }
+        .ai-btn-glow:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(147, 51, 234, 0.6); color: white; }
+        .ai-modal .modal-header { background: linear-gradient(135deg, #4f46e5, #7c3aed, #9333ea); }
+        .ai-section { margin-bottom: 20px; padding: 16px; border-radius: 10px; border: 1px solid #e5e7eb; }
+        .ai-section-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .ai-metric { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f3f4f6; font-size: 0.85rem; }
+        .ai-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
+        .ai-tag-danger { background: #fee2e2; color: #991b1b; }
+        .ai-tag-warning { background: #fef3c7; color: #92400e; }
+        .ai-tag-success { background: #d1fae5; color: #065f46; }
+        .ai-tag-info { background: #dbeafe; color: #1e40af; }
+        .ai-rec { padding: 10px 14px; background: #f8fafc; border-left: 3px solid #7c3aed; margin-bottom: 8px; border-radius: 0 6px 6px 0; font-size: 0.85rem; }
+        .ai-risk-bar { height: 8px; border-radius: 4px; background: #e5e7eb; overflow: hidden; margin-top: 4px; }
+        .ai-risk-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+        .ai-tabs .nav-link { font-size: 0.8rem; font-weight: 600; padding: 6px 14px; }
+
+        /* Calendar Styles */
+        .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; font-size: 0.75rem; }
+        .cal-header { font-weight: 700; text-align: center; padding: 6px 2px; color: var(--text-light); text-transform: uppercase; }
+        .cal-day { text-align: center; padding: 8px 2px; border-radius: 6px; cursor: pointer; position: relative; min-height: 38px; border: 1px solid transparent; }
+        .cal-day:hover { background: #eff6ff; border-color: var(--accent-blue); }
+        .cal-day.today { background: #dbeafe; font-weight: 700; color: var(--accent-blue); }
+        .cal-day.has-event { background: #fef3c7; border-color: #f59e0b; }
+        .cal-day.has-event.overdue { background: #fee2e2; border-color: #ef4444; }
+        .cal-dot { width: 5px; height: 5px; border-radius: 50%; background: #f59e0b; display: inline-block; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); }
+        .cal-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .cal-nav button { border: none; background: none; font-size: 1rem; cursor: pointer; color: var(--accent-blue); font-weight: 700; }
+        .event-item { padding: 8px 12px; border-left: 3px solid #f59e0b; background: #fffbeb; margin-bottom: 6px; border-radius: 0 6px 6px 0; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
+        .event-item.done { border-left-color: #10b981; background: #ecfdf5; opacity: 0.7; }
+
+        /* Reminder Cards */
+        .reminder-card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+        .reminder-card h6 { font-size: 0.85rem; font-weight: 700; margin-bottom: 10px; }
+        .stat-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.8rem; border-bottom: 1px solid #f9fafb; }
+
+        /* Chatbox */
+        .chatbox-toggle { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #9333ea); color: white; border: none; font-size: 1.4rem; box-shadow: 0 4px 20px rgba(79,70,229,0.5); z-index: 200; cursor: pointer; transition: transform 0.3s; }
+        .chatbox-toggle:hover { transform: scale(1.1); }
+        .chatbox-panel { position: fixed; bottom: 90px; right: 24px; width: 380px; max-height: 500px; background: white; border-radius: 14px; box-shadow: 0 8px 40px rgba(0,0,0,0.15); z-index: 200; display: none; flex-direction: column; overflow: hidden; border: 1px solid #e5e7eb; }
+        .chatbox-panel.open { display: flex; }
+        .chat-head { background: linear-gradient(135deg, #4f46e5, #9333ea); color: white; padding: 14px 16px; font-weight: 700; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+        .chat-body { flex: 1; overflow-y: auto; padding: 12px; max-height: 340px; }
+        .chat-msg { margin-bottom: 10px; max-width: 85%; }
+        .chat-msg.user { margin-left: auto; }
+        .chat-msg .bubble { padding: 8px 12px; border-radius: 12px; font-size: 0.82rem; line-height: 1.5; }
+        .chat-msg.user .bubble { background: #4f46e5; color: white; border-bottom-right-radius: 4px; }
+        .chat-msg.bot .bubble { background: #f3f4f6; color: #1f2937; border-bottom-left-radius: 4px; }
+        .chat-input { display: flex; border-top: 1px solid #e5e7eb; padding: 8px; gap: 6px; }
+        .chat-input input { flex: 1; border: 1px solid #d1d5db; border-radius: 8px; padding: 8px 12px; font-size: 0.82rem; outline: none; }
+        .chat-input button { background: #4f46e5; color: white; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 0.82rem; cursor: pointer; }
+
+        /* Notes */
+        .note-item { padding: 10px 14px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; font-size: 0.82rem; background: #fefce8; }
+        .note-item .note-time { font-size: 0.7rem; color: #9ca3af; }
+        .note-item .note-del { color: #ef4444; cursor: pointer; font-size: 0.75rem; }
+
+        /* Search Results */
+        .search-result-card { padding: 10px 14px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 6px; font-size: 0.8rem; }
+        .search-result-card.found { background: #ecfdf5; border-color: #6ee7b7; }
+        .search-result-card.notfound { background: #fef2f2; border-color: #fecaca; }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingText">System Initializing...</div>
+    </div>
+
+    <div class="sidebar">
+        <div class="brand"><i class="fas fa-layer-group me-2"></i> STRUCTURE V20.1</div>
+
+        <div class="mb-3">
+            <label class="filter-label">Upload Data</label>
+            <input type="file" id="fileUpload" class="form-control form-control-sm" accept=".csv,.xlsx">
+            <div id="fileName" style="font-size:0.7rem;color:#2563eb;margin-top:3px;display:none;"><i class="fas fa-file me-1"></i><span id="fileNameText"></span></div>
+            <div id="storageIndicator"><i class="fas fa-database me-1"></i> Data restored from cache</div>
+            <button class="btn btn-sm btn-outline-danger w-100 mt-2" onclick="clearUploadedData()" id="btnClearData" style="display:none;font-size:0.72rem;"><i class="fas fa-times-circle me-1"></i>Clear Data & Reset</button>
+        </div>
+        
+        <div class="mb-3">
+            <button class="btn btn-sm btn-outline-danger w-100 fw-bold" onclick="exportPDF()" id="btnPdf" disabled>
+                <i class="fas fa-file-pdf me-2"></i>Export PDF Report
+            </button>
+        </div>
+        <div class="mb-3">
+            <button class="btn btn-sm btn-success w-100 fw-bold" onclick="exportAllExcel()" id="btnExcelAll" disabled>
+                <i class="fas fa-file-excel me-2"></i>Export All Dashboard (Excel)
+            </button>
+        </div>
+        <div class="mb-3">
+            <button class="btn btn-sm w-100 fw-bold ai-btn-glow" onclick="generateAIReport()" id="btnAI" disabled>
+                <i class="fas fa-robot me-2"></i>AI Data Analysis
+            </button>
+        </div>
+        <hr>
+
+        <div class="mb-3">
+            <label class="filter-label">Welding Date Range</label>
+            <div class="row g-1">
+                <div class="col-6"><input type="date" id="dateStart" class="form-control form-control-sm"></div>
+                <div class="col-6"><input type="date" id="dateEnd" class="form-control form-control-sm"></div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <div class="row g-1">
+                <div class="col-6">
+                    <label class="filter-label">%UT Req</label>
+                    <select id="filterPctUT" class="form-select form-select-sm"><option value="">All</option></select>
+                </div>
+                <div class="col-6">
+                    <label class="filter-label">%MT Req</label>
+                    <select id="filterPctMT" class="form-select form-select-sm"><option value="">All</option></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="filter-label">UT Result</label>
+            <select id="filterUT" class="form-select form-select-sm">
+                <option value="">All Status</option>
+                <option value="ACC">Accept</option>
+                <option value="REJ">Reject</option>
+                <option value="Pending">Pending</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="filter-label">Weld Type (Col E)</label>
+            <select id="filterWeldType" class="form-select form-select-sm"><option value="">All</option></select>
+        </div>
+
+        <div class="mb-3">
+            <label class="filter-label">UT Report Date (Col BS)</label>
+            <div class="row g-1">
+                <div class="col-6"><input type="date" id="utDateStart" class="form-control form-control-sm"></div>
+                <div class="col-6"><input type="date" id="utDateEnd" class="form-control form-control-sm"></div>
+            </div>
+        </div>
+        <div class="mb-2"><label class="filter-label">Facility</label><input type="text" id="sFacility" class="form-control form-control-sm"></div>
+        <div class="mb-2"><label class="filter-label">Drawing No. <small class="text-muted">(multi: comma or newline)</small></label><textarea id="sDrawing" class="form-control form-control-sm" rows="2" placeholder="DWG-001, DWG-002..."></textarea></div>
+        <div class="mb-2"><label class="filter-label">Joint No.</label><input type="text" id="sJoint" class="form-control form-control-sm"></div>
+        <div class="mb-4"><label class="filter-label">Welder ID</label><input type="text" id="sWelder" class="form-control form-control-sm"></div>
+
+        <div class="d-grid gap-2">
+            <button class="btn-apply" onclick="applyFilters()" id="btnApply" disabled>Apply Filters</button>
+            <button class="btn-reset" onclick="resetFilters()" id="btnReset" disabled>Reset Filters</button>
+        </div>
+        
+        <button class="btn-clear-db" onclick="clearDatabase()"><i class="fas fa-trash-alt me-2"></i>Clear Saved Data</button>
+
+        <div class="text-center mt-3 text-muted small" id="dataStatus">No Data</div>
+    </div>
+
+    <div class="main-content" id="printArea">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <h4 class="mb-0 fw-bold" style="color: var(--text-main);">Project Dashboard (V20.1 - Manager)</h4>
+            <div class="text-muted small" id="reportDate"></div>
+        </div>
+        
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="d-flex justify-content-between">
+                    <div><div class="kpi-label">Total Scope</div><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-sub">Joints Filtered</div></div>
+                    <div class="kpi-icon icon-blue"><i class="fas fa-cubes"></i></div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="d-flex justify-content-between">
+                    <div><div class="kpi-label">Volume (Length)</div><div class="kpi-value text-primary" id="kpiLength">0</div><div class="kpi-sub">Total Weld Length</div></div>
+                    <div class="kpi-icon icon-purple"><i class="fas fa-ruler-horizontal"></i></div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="d-flex justify-content-between">
+                    <div><div class="kpi-label">Visual Accepted</div><div class="kpi-value text-success" id="kpiVisual">0</div><div class="kpi-sub">First Pass</div></div>
+                    <div class="kpi-icon icon-green"><i class="fas fa-eye"></i></div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="d-flex justify-content-between">
+                    <div><div class="kpi-label">Repair Rate</div><div class="kpi-value text-danger" id="kpiRepair">0.00%</div><div class="kpi-sub">By Defect Length</div></div>
+                    <div class="kpi-icon icon-red"><i class="fas fa-exclamation-triangle"></i></div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="d-flex justify-content-between">
+                    <div><div class="kpi-label">Total UT Joints</div><div class="kpi-value" id="kpiUT" style="color:#2563eb;">0</div><div class="kpi-sub">UT Inspected</div></div>
+                    <div class="kpi-icon icon-blue"><i class="fas fa-search"></i></div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="d-flex justify-content-between">
+                    <div><div class="kpi-label">Total MT Joints</div><div class="kpi-value" id="kpiMT" style="color:#f59e0b;">0</div><div class="kpi-sub">MT Inspected</div></div>
+                    <div class="kpi-icon icon-orange"><i class="fas fa-magnet"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs mb-4" id="dashboardTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab"><i class="fas fa-chart-pie me-2"></i>Overview & NDT</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="welder-tab" data-bs-toggle="tab" data-bs-target="#welder" type="button" role="tab"><i class="fas fa-user-shield me-2"></i>Welder Performance</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="reminder-tab" data-bs-toggle="tab" data-bs-target="#reminders" type="button" role="tab"><i class="fas fa-bell me-2"></i>Reminders & Calendar</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="search-tab" data-bs-toggle="tab" data-bs-target="#searchPanel" type="button" role="tab"><i class="fas fa-search me-2"></i>IRN Search & Notes</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="dashboardTabContent">
+            
+            <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                <div class="chart-grid">
+                    <div class="chart-box">
+                        <div class="box-title">Production Length vs Repair Rate Trend</div>
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <div class="box-title">NDT Verification Progress</div>
+                        <canvas id="ndtChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-toolbar">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold text-secondary">Detailed Inspection Data</span>
+                            <div class="page-ctrl ms-3">
+                                <button class="btn btn-sm btn-outline-secondary" onclick="changePage('prev')"><i class="fas fa-chevron-left"></i></button>
+                                <span id="pageInfo">Page 1/1</span>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="changePage('next')"><i class="fas fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-success fw-bold" onclick="exportData()"><i class="fas fa-file-excel me-2"></i>Excel</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>No.</th><th>Facility</th><th class="col-drawing">Drawing No.</th><th>Joint</th>
+                                    <th>Weld Type</th><th class="text-center">Size</th><th class="text-center">Thick</th><th>Welder</th><th>W. Date</th>
+                                    <th class="text-center bg-light-col">Length</th>
+                                    <th class="text-center bg-light-col">NDT Len</th><th class="text-center bg-light-col">Defect Len</th>
+                                    <th>UT Report</th><th>UT Date</th><th>MT Report</th><th>Visual Result</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody"></tbody>
+                            <tfoot id="tableFooter"></tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="welder" role="tabpanel">
+                <div class="chart-grid">
+                    <div class="chart-box">
+                        <div class="box-title">Top 10 Welders by Joints</div>
+                        <canvas id="welderVolChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <div class="box-title">Welder Repair Rates (Top 10)</div>
+                        <canvas id="welderRateChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <div class="p-3 bg-light fw-bold border-bottom">Welder Performance Summary (Top 10 by Joints)</div>
+                    <div class="table-responsive">
+                        <table class="table table-striped text-center">
+                            <thead><tr><th>Rank</th><th>Welder ID</th><th>Total Joints</th><th>Total Length</th><th>Defect Count</th><th>Repair Rate (%)</th><th>Performance</th></tr></thead>
+                            <tbody id="welderTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: Reminders & Calendar -->
+            <div class="tab-pane fade" id="reminders" role="tabpanel">
+                <div class="row g-3">
+                    <div class="col-md-7">
+                        <div class="reminder-card">
+                            <h6><i class="fas fa-chart-bar me-2 text-primary"></i>Weekly Summary (Last 7 Days)</h6>
+                            <div id="weeklyStats"><span class="text-muted small">Load data to see weekly stats</span></div>
+                        </div>
+                        <div class="reminder-card">
+                            <h6><i class="fas fa-clipboard-check me-2 text-warning"></i>Upcoming IRN Releases</h6>
+                            <div id="upcomingIRN"><span class="text-muted small">No events yet. Add events in Calendar.</span></div>
+                        </div>
+                        <div class="reminder-card">
+                            <h6><i class="fas fa-tasks me-2 text-danger"></i>Crosscheck Reminders (Primary)</h6>
+                            <div id="crosscheckList"><span class="text-muted small">Load data to see crosscheck items</span></div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="reminder-card">
+                            <div class="cal-nav">
+                                <button onclick="changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+                                <span class="fw-bold" id="calMonthLabel"></span>
+                                <button onclick="changeMonth(1)"><i class="fas fa-chevron-right"></i></button>
+                            </div>
+                            <div class="cal-grid" id="calGrid"></div>
+                        </div>
+                        <div class="reminder-card">
+                            <h6><i class="fas fa-plus-circle me-2 text-success"></i>Add Event</h6>
+                            <input type="date" id="evtDate" class="form-control form-control-sm mb-2">
+                            <input type="text" id="evtTitle" class="form-control form-control-sm mb-2" placeholder="Event title (e.g. IRN Release)">
+                            <input type="text" id="evtDrawing" class="form-control form-control-sm mb-2" placeholder="Drawing No. (optional)">
+                            <button class="btn btn-sm btn-primary w-100" onclick="addCalendarEvent()"><i class="fas fa-save me-1"></i>Save Event</button>
+                        </div>
+                        <div id="eventList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: IRN Search & Notes -->
+            <div class="tab-pane fade" id="searchPanel" role="tabpanel">
+                <div class="row g-3">
+                    <div class="col-md-7">
+                        <div class="reminder-card">
+                            <h6><i class="fas fa-search me-2 text-primary"></i>Multi-Drawing Search (IRN Check)</h6>
+                            <p class="text-muted" style="font-size:0.75rem;">Paste Drawing numbers (one per line or comma separated), or upload an Excel file with Drawing column.</p>
+                            <textarea id="searchDrawings" class="form-control form-control-sm mb-2" rows="4" placeholder="DWG-001&#10;DWG-002&#10;DWG-003"></textarea>
+                            <div class="d-flex gap-2 mb-2">
+                                <button class="btn btn-sm btn-primary flex-fill" onclick="searchMultiDrawings()"><i class="fas fa-search me-1"></i>Search</button>
+                                <label class="btn btn-sm btn-outline-secondary flex-fill mb-0" style="cursor:pointer">
+                                    <i class="fas fa-file-excel me-1"></i>Upload IRN Excel
+                                    <input type="file" id="irnFileUpload" accept=".xlsx,.csv" style="display:none" onchange="uploadIRNFile(event)">
+                                </label>
+                            </div>
+                            <div id="searchResults"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="reminder-card">
+                            <h6><i class="fas fa-sticky-note me-2 text-warning"></i>Notes & Memos</h6>
+                            <textarea id="noteText" class="form-control form-control-sm mb-2" rows="3" placeholder="Write a note..."></textarea>
+                            <div class="d-flex gap-2 mb-2">
+                                <input type="text" id="noteTag" class="form-control form-control-sm" placeholder="Tag (optional)">
+                                <button class="btn btn-sm btn-warning" onclick="saveNote()"><i class="fas fa-save me-1"></i>Save</button>
+                            </div>
+                            <div id="notesList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Floating AI Chatbox -->
+    <button class="chatbox-toggle" onclick="toggleChatbox()" title="AI Assistant"><i class="fas fa-robot"></i></button>
+    <div class="chatbox-panel" id="chatboxPanel">
+        <div class="chat-head">
+            <span><i class="fas fa-robot me-2"></i>AI NDT Assistant</span>
+            <button style="background:none;border:none;color:white;font-size:1.1rem;cursor:pointer" onclick="toggleChatbox()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="chat-body" id="chatBody">
+            <div class="chat-msg bot"><div class="bubble">Xin chào! Tôi có thể tra cứu %NDT, thống kê thợ hàn, facility. Hãy hỏi tôi!</div></div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="chatInput" placeholder="Hỏi về NDT, welder, drawing..." onkeydown="if(event.key==='Enter')sendChat()">
+            <button onclick="sendChat()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- AI Analysis Modal -->
+    <div class="modal fade ai-modal" id="aiModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-robot me-2"></i>AI Data Analysis Report</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4" id="aiReportContent" style="max-height:75vh;overflow-y:auto;"></div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button class="btn btn-sm ai-btn-glow" onclick="exportAIReportWord()"><i class="fas fa-file-word me-2"></i>Export AI Report (Word)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let rawData = [], filteredData = [], chartInstances = {};
+        let currentPage = 1;
+        const rowsPerPage = 100;
+        const DB_NAME = 'StructureDashboardDB_V20_1';
+        const STORE_NAME = 'ProjectData';
+
+        // --- INDEXED DB HANDLING (v2 with CalendarEvents & UserNotes) ---
+        const idb = {
+            db: null,
+            init: function() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(DB_NAME, 2);
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+                        if (!db.objectStoreNames.contains('CalendarEvents')) db.createObjectStore('CalendarEvents', {keyPath:'id', autoIncrement:true});
+                        if (!db.objectStoreNames.contains('UserNotes')) db.createObjectStore('UserNotes', {keyPath:'id', autoIncrement:true});
+                    };
+                    request.onsuccess = (e) => { this.db = e.target.result; resolve(this.db); };
+                    request.onerror = (e) => reject("DB Error");
+                });
+            },
+            save: function(key, data) { if(!this.db) return; const tx = this.db.transaction(STORE_NAME, 'readwrite'); tx.objectStore(STORE_NAME).put(data, key); },
+            load: function(key) {
+                return new Promise((resolve) => {
+                    if(!this.db) return resolve(null);
+                    const tx = this.db.transaction(STORE_NAME, 'readonly');
+                    const req = tx.objectStore(STORE_NAME).get(key);
+                    req.onsuccess = (e) => resolve(e.target.result);
+                    req.onerror = () => resolve(null);
+                });
+            },
+            clear: function() { if(!this.db) return; const tx = this.db.transaction(STORE_NAME, 'readwrite'); tx.objectStore(STORE_NAME).clear(); alert("Data cache cleared."); location.reload(); }
+        };
+
+        function showLoading() { document.getElementById('loadingOverlay').style.display = 'flex'; }
+        function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
+        document.getElementById('reportDate').innerText = moment().format('DD/MM/YYYY HH:mm');
+
+        // APP INITIALIZATION
+        window.addEventListener('DOMContentLoaded', async () => {
+            showLoading();
+            document.getElementById('loadingText').innerText = "Checking saved data...";
+            await idb.init();
+            const savedData = await idb.load('currentRawData');
+            if(savedData && savedData.length > 0) {
+                document.getElementById('loadingText').innerText = "Restoring session...";
+                rawData = savedData;
+                document.getElementById('storageIndicator').style.display = 'block';
+                document.getElementById('btnClearData').style.display = 'block';
+                document.getElementById('fileName').style.display = 'block';
+                document.getElementById('fileNameText').innerText = 'Restored from cache';
+                setTimeout(() => {
+                    document.getElementById('btnApply').disabled = false;
+                    document.getElementById('btnReset').disabled = false;
+                    document.getElementById('btnPdf').disabled = false;
+                    document.getElementById('btnExcelAll').disabled = false;
+                    document.getElementById('btnAI').disabled = false;
+                    initFilterOptions();
+                    applyFilters();
+                    document.getElementById('dataStatus').innerText = `Loaded ${rawData.length} rows (from Cache)`;
+                    hideLoading();
+                }, 100);
+            } else { hideLoading(); }
+        });
+
+        // FILE UPLOAD HANDLER
+        document.getElementById('fileUpload').addEventListener('change', function(e) {
+            if(e.target.files[0]) {
+                showLoading();
+                const file = e.target.files[0];
+                const fileName = file.name.toLowerCase();
+                const displayName = file.name;
+                document.getElementById('loadingText').innerText = "Reading file...";
+
+                // Show filename
+                document.getElementById('fileName').style.display = 'block';
+                document.getElementById('fileNameText').innerText = displayName;
+                document.getElementById('btnClearData').style.display = 'block';
+
+                if(fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                    // Read Excel file using SheetJS
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        const data = new Uint8Array(evt.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+                        document.getElementById('loadingText').innerText = "Processing & Saving...";
+                        setTimeout(() => processData(jsonData, true), 50);
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    // Read CSV file using PapaParse
+                    Papa.parse(file, { header: true, skipEmptyLines: true, worker: true, complete: function(results) {
+                        document.getElementById('loadingText').innerText = "Processing & Saving...";
+                        setTimeout(() => processData(results.data, true), 50);
+                    }});
+                }
+            }
+        });
+
+        function clearDatabase() { if(confirm("Are you sure you want to clear saved data?")) idb.clear(); }
+
+        function clearUploadedData() {
+            if(!confirm("Clear all data and reset dashboard?")) return;
+            rawData = []; filteredData = [];
+            idb.clear();
+        }
+
+        function processData(data, saveToDb = false) {
+            let processed = [];
+            for(let i=0; i < data.length; i++) {
+                const r = data[i];
+                if (!r['Joint No.']) continue;
+                let wDate = null;
+                const dateStr = r['Welding Completed Date'];
+                if(dateStr) { const p = dateStr.split('/'); if(p.length === 3) wDate = new Date(`${p[2]}-${p[1]}-${p[0]}`).getTime(); }
+                let utDateTs = null;
+                const utDateStr = r['UT Report Date'];
+                if(utDateStr) { const p = utDateStr.split('/'); if(p.length === 3) utDateTs = new Date(`${p[2]}-${p[1]}-${p[0]}`).getTime(); }
+                const weldType = r['Weld Type'] || '';
+                const check = (val) => { if(!val) return 'Pending'; const s = val.toString().toUpperCase(); if(s.includes('REJ') || s.includes('FAIL')) return 'REJ'; if(s.includes('ACC') || s.includes('OK')) return 'ACC'; return 'Pending'; };
+                let utRep = r['PAUTReportNo'] || r['UT Report No'] || '';
+                let utRes = check(r['PAUTResult'] || r['UT Result']);
+                if(check(r['UT Result']) === 'REJ' || check(r['PAUTResult']) === 'REJ') utRes = 'REJ';
+                else if(check(r['UT Result']) === 'ACC' || check(r['PAUTResult']) === 'ACC') utRes = 'ACC';
+                const lenNDT = parseFloat(r['LengthNDT']) || 0;
+                const lenDefect = parseFloat(r['Defect Length']) || 0;
+                const lengthVal = parseFloat(r['Length']) || 0;
+                let diaIn = parseFloat(r['DiaIn']) || 0;
+                if(diaIn === 0 && r['Size']) { const s = parseFloat(r['Size']); if(!isNaN(s)) diaIn = s; }
+
+                processed.push({
+                    id: i+1, fac: r['Facility'] || r['System'] || '', dwg: r['Drawing No.'] || '', joint: r['Joint No.'],
+                    weldType: weldType, thickness: r['Thick'] || '-', size: r['Size'] || '', diaIn: diaIn, lengthVal: lengthVal,
+                    welder: r['Welder ID'] ? r['Welder ID'].trim().toUpperCase() : '',
+                    dateTs: wDate, dateStr: dateStr || '', utDateTs: utDateTs, utDateStr: utDateStr || '',
+                    pctUT: r['%UT'] || r['%PAUT'] || '', pctMT: r['%MT'] || '',
+                    utRep: utRep, utRes: utRes,
+                    mtRep: r['MT Report No'] || '', mtRes: check(r['MT Result']),
+                    lenNDT: lenNDT, lenDefect: lenDefect,
+                    visualRes: check(r['Visual Result']), visualDate: r['Visual Report Date'] || ''
+                });
+            }
+            rawData = processed;
+            if(saveToDb) { idb.save('currentRawData', rawData); document.getElementById('storageIndicator').style.display = 'block'; }
+            document.getElementById('btnApply').disabled = false;
+            document.getElementById('btnReset').disabled = false;
+            document.getElementById('btnPdf').disabled = false;
+            document.getElementById('btnExcelAll').disabled = false;
+            document.getElementById('btnAI').disabled = false;
+            initFilterOptions();
+            document.getElementById('dataStatus').innerText = `Loaded ${rawData.length} rows`;
+            applyFilters();
+            hideLoading();
+        }
+
+        function initFilterOptions() {
+            const setOpts = (id, key) => {
+                const vals = [...new Set(rawData.map(d => d[key]).filter(v => v))].sort();
+                const sel = document.getElementById(id);
+                sel.innerHTML = '<option value="">All</option>' + vals.map(v => `<option value="${v}">${v}</option>`).join('');
+            };
+            setOpts('filterPctUT', 'pctUT');
+            setOpts('filterPctMT', 'pctMT');
+            setOpts('filterWeldType', 'weldType');
+        }
+
+        function applyFilters() {
+            const dStart = document.getElementById('dateStart').valueAsDate;
+            const dEnd = document.getElementById('dateEnd').valueAsDate;
+            const fUT = document.getElementById('filterUT').value;
+            const fPctUT = document.getElementById('filterPctUT').value;
+            const fPctMT = document.getElementById('filterPctMT').value;
+            const fWeldType = document.getElementById('filterWeldType').value;
+            const dUtStart = document.getElementById('utDateStart').valueAsDate;
+            const dUtEnd = document.getElementById('utDateEnd').valueAsDate;
+            const sFac = document.getElementById('sFacility').value.toLowerCase();
+            const sDwgRaw = document.getElementById('sDrawing').value.trim();
+            const sDwgList = sDwgRaw ? sDwgRaw.toLowerCase().split(/[,\n]+/).map(s=>s.trim()).filter(s=>s) : [];
+            const sJoint = document.getElementById('sJoint').value.toLowerCase();
+            const sWelder = document.getElementById('sWelder').value.toLowerCase();
+            const tsStart = dStart ? dStart.getTime() : null;
+            const tsEnd = dEnd ? dEnd.getTime() : null;
+            const tsUtStart = dUtStart ? dUtStart.getTime() : null;
+            const tsUtEnd = dUtEnd ? dUtEnd.getTime() : null;
+
+            filteredData = rawData.filter(d => {
+                if(tsStart && (!d.dateTs || d.dateTs < tsStart)) return false;
+                if(tsEnd && (!d.dateTs || d.dateTs > tsEnd)) return false;
+                if(tsUtStart && (!d.utDateTs || d.utDateTs < tsUtStart)) return false;
+                if(tsUtEnd && (!d.utDateTs || d.utDateTs > tsUtEnd)) return false;
+                if(fWeldType && d.weldType !== fWeldType) return false;
+                if(fUT && fUT !== 'Pending' && d.utRes !== fUT) return false;
+                if(fUT === 'Pending' && d.utRes !== 'Pending') return false;
+                if(fPctUT && d.pctUT !== fPctUT) return false;
+                if(fPctMT && d.pctMT !== fPctMT) return false;
+                if(sFac && !d.fac.toLowerCase().includes(sFac)) return false;
+                if(sDwgList.length > 0 && !sDwgList.some(dwg => d.dwg.toLowerCase().includes(dwg))) return false;
+                if(sJoint && !d.joint.toLowerCase().includes(sJoint)) return false;
+                if(sWelder && !d.welder.toLowerCase().includes(sWelder)) return false;
+                return true;
+            });
+            currentPage = 1;
+            updateDashboard();
+            setTimeout(() => updateWelderAnalysis(), 20);
+        }
+
+        function updateDashboard() {
+            const total = filteredData.length;
+            let visualAcc = 0, verified = 0, totalNDT_Len = 0, totalDefect_Len = 0, totalLength = 0;
+            let totalUT = 0, totalMT = 0;
+            for(let i=0; i<total; i++) {
+                const d = filteredData[i];
+                if(d.visualRes === 'ACC') visualAcc++;
+                if(d.utRes === 'ACC' || d.utRes === 'REJ') verified++;
+                totalNDT_Len += d.lenNDT; totalDefect_Len += d.lenDefect; totalLength += d.lengthVal;
+                // Count UT joints: has UT report or UT result is not Pending
+                if(d.utRep || d.utRes !== 'Pending') totalUT++;
+                // Count MT joints: has MT report or MT result is not Pending
+                if(d.mtRep || d.mtRes !== 'Pending') totalMT++;
+            }
+            const repairRate = totalNDT_Len > 0 ? (totalDefect_Len / totalNDT_Len * 100) : 0;
+            document.getElementById('kpiTotal').innerText = total.toLocaleString();
+            document.getElementById('kpiVisual').innerText = visualAcc.toLocaleString();
+            document.getElementById('kpiLength').innerText = totalLength.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+            document.getElementById('kpiRepair').innerText = repairRate.toFixed(2) + '%';
+            document.getElementById('kpiUT').innerText = totalUT.toLocaleString();
+            document.getElementById('kpiMT').innerText = totalMT.toLocaleString();
+            renderTable(totalNDT_Len, totalDefect_Len);
+            setTimeout(() => updateCharts(), 20);
+        }
+
+        function updateWelderAnalysis() {
+            const welderMap = {};
+            for(let i=0; i<filteredData.length; i++) {
+                const d = filteredData[i];
+                if(!d.welder) continue;
+                if(!welderMap[d.welder]) welderMap[d.welder] = { id: d.welder, joints: 0, totalLen: 0, defects: 0 };
+                const w = welderMap[d.welder];
+                w.joints++; w.totalLen += d.lengthVal;
+                if(d.lenDefect > 0 || d.utRes === 'REJ' || d.mtRes === 'REJ') w.defects++;
+            }
+            const topWelders = Object.values(welderMap).sort((a,b) => b.joints - a.joints).slice(0, 10);
+            const labels = topWelders.map(w => w.id);
+            const vols = topWelders.map(w => w.joints);
+            const rates = topWelders.map(w => w.joints > 0 ? (w.defects/w.joints*100) : 0);
+
+            if(chartInstances.welderVol) chartInstances.welderVol.destroy();
+            chartInstances.welderVol = new Chart(document.getElementById('welderVolChart'), {
+                type: 'bar', data: { labels, datasets: [{ label: 'Joints', data: vols, backgroundColor: '#3b82f6' }] },
+                options: { maintainAspectRatio: false, plugins: { legend: {display:false} } }
+            });
+            if(chartInstances.welderRate) chartInstances.welderRate.destroy();
+            chartInstances.welderRate = new Chart(document.getElementById('welderRateChart'), {
+                type: 'bar', data: { labels, datasets: [{ label: 'Repair Rate %', data: rates, backgroundColor: rates.map(r => r > 5 ? '#ef4444' : '#10b981') }] },
+                options: { maintainAspectRatio: false, plugins: { legend: {display:false} } }
+            });
+
+            const tbody = document.getElementById('welderTableBody');
+            tbody.innerHTML = '';
+            topWelders.forEach((w, i) => {
+                const rate = w.joints > 0 ? (w.defects/w.joints*100).toFixed(1) : "0.0";
+                let badge = '<span class="badge bg-success">Good</span>';
+                if(parseFloat(rate) > 5) badge = '<span class="badge bg-danger">Critical</span>';
+                else if(parseFloat(rate) > 2) badge = '<span class="badge bg-warning text-dark">Warning</span>';
+                tbody.innerHTML += `<tr><td>${i+1}</td><td class="fw-bold">${w.id}</td><td>${w.joints}</td><td>${w.totalLen.toFixed(1)}</td><td class="text-danger fw-bold">${w.defects}</td><td>${rate}%</td><td>${badge}</td></tr>`;
+            });
+        }
+
+        function updateCharts() {
+            const dateMap = {};
+            for(let i=0; i<filteredData.length; i++) {
+                const d = filteredData[i];
+                if(d.dateStr) {
+                    const key = d.dateStr;
+                    if(!dateMap[key]) dateMap[key] = { vol: 0, ndtLen: 0, defLen: 0, dt: d.dateTs || 0 };
+                    dateMap[key].vol += d.lengthVal; dateMap[key].ndtLen += d.lenNDT; dateMap[key].defLen += d.lenDefect;
+                }
+            }
+            const labels = Object.keys(dateMap).sort((a,b) => dateMap[a].dt - dateMap[b].dt);
+            const vols = labels.map(k => dateMap[k].vol);
+            const rates = labels.map(k => { const l = dateMap[k].ndtLen; return l > 0 ? (dateMap[k].defLen / l * 100) : 0; });
+
+            if(chartInstances.trend) chartInstances.trend.destroy();
+            chartInstances.trend = new Chart(document.getElementById('trendChart'), {
+                type: 'bar',
+                data: { labels, datasets: [
+                    { label: 'Length', data: vols, type: 'bar', backgroundColor: 'rgba(37, 99, 235, 0.6)', yAxisID: 'y' },
+                    { label: 'Repair %', data: rates, type: 'line', borderColor: '#ef4444', borderWidth: 2, yAxisID: 'y1' }
+                ]},
+                options: { maintainAspectRatio: false, responsive: true, scales: { y: {position:'left'}, y1: {position:'right', grid:{drawOnChartArea:false}} } }
+            });
+
+            const stats = { acc: 0, rej: 0, pending: 0 };
+            for(let i=0; i<filteredData.length; i++) {
+                if(filteredData[i].utRes === 'ACC') stats.acc++; else if(filteredData[i].utRes === 'REJ') stats.rej++; else stats.pending++;
+            }
+            if(chartInstances.ndt) chartInstances.ndt.destroy();
+            chartInstances.ndt = new Chart(document.getElementById('ndtChart'), {
+                type: 'doughnut',
+                data: { labels: ['ACC', 'REJ', 'Pending'], datasets: [{ data: [stats.acc, stats.rej, stats.pending], backgroundColor: ['#10b981', '#ef4444', '#e5e7eb'], borderWidth: 0 }] },
+                options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        function changePage(dir) {
+            const maxPage = Math.ceil(filteredData.length / rowsPerPage) || 1;
+            if (dir === 'next' && currentPage < maxPage) currentPage++;
+            else if (dir === 'prev' && currentPage > 1) currentPage--;
+            renderTable();
+        }
+
+        function renderTable(sumLen=0, sumDef=0) {
+            const tbody = document.getElementById('tableBody');
+            const tfoot = document.getElementById('tableFooter');
+            tbody.innerHTML = '';
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const subset = filteredData.slice(start, end);
+            const maxPage = Math.ceil(filteredData.length / rowsPerPage) || 1;
+            document.getElementById('pageInfo').innerText = `Page ${currentPage}/${maxPage}`;
+            let html = '';
+            for(let i=0; i<subset.length; i++) {
+                const d = subset[i];
+                const getBadge = (res) => { if(res==='ACC') return '<span class="badge-status st-acc">ACC</span>'; if(res==='REJ') return '<span class="badge-status st-rej">REJ</span>'; return '<span class="badge-status st-pending">Pending</span>'; };
+                const defectClass = d.lenDefect > 0 ? 'text-danger fw-bold' : '';
+                html += `<tr><td>${start+i+1}</td><td>${d.fac}</td><td class="col-drawing" title="${d.dwg}">${d.dwg}</td><td>${d.joint}</td><td><small>${d.weldType}</small></td><td class="text-center">${d.size}</td><td class="text-center text-muted">${d.thickness}</td><td class="text-truncate" style="max-width:80px" title="${d.welder}">${d.welder}</td><td>${d.dateStr}</td><td class="text-center bg-light-col">${d.lengthVal}</td><td class="text-center bg-light-col">${d.lenNDT}</td><td class="text-center bg-light-col ${defectClass}">${d.lenDefect}</td><td>${d.utRep} ${getBadge(d.utRes)}</td><td style="font-size:0.75rem" class="text-muted">${d.utDateStr}</td><td>${d.mtRep} ${getBadge(d.mtRes)}</td><td>${getBadge(d.visualRes)}</td></tr>`;
+            }
+            tbody.innerHTML = html;
+            if(sumLen === 0 && filteredData.length > 0) { sumLen = filteredData.reduce((a,c) => a + c.lenNDT, 0); sumDef = filteredData.reduce((a,c) => a + c.lenDefect, 0); }
+            const rate = sumLen > 0 ? (sumDef/sumLen*100).toFixed(2) : "0.00";
+            tfoot.innerHTML = `<tr><td colspan="11" class="text-end">TOTAL (Filtered):</td><td colspan="5" class="text-start">NDT Len: ${sumLen.toFixed(1)} | Defect: ${sumDef.toFixed(1)} | <span class="text-danger">Rate: ${rate}%</span></td></tr>`;
+        }
+
+        function resetFilters() {
+            document.querySelectorAll('.sidebar input, .sidebar select, .sidebar textarea').forEach(el => {
+                if(el.id !== 'fileUpload') el.value = '';
+            });
+            applyFilters();
+        }
+
+        // === EXPORT ALL DASHBOARD TO EXCEL (Multi-Sheet) ===
+        function exportAllExcel() {
+            if(!filteredData.length) return alert("No data to export!");
+            showLoading();
+            document.getElementById('loadingText').innerText = "Generating Excel report...";
+
+            setTimeout(() => {
+                const wb = XLSX.utils.book_new();
+
+                // --- Sheet 1: KPI Summary ---
+                let totalLen = 0, totalNDT = 0, totalDefect = 0, visualAcc = 0, utAcc = 0, utRej = 0, utPending = 0;
+                let exTotalUT = 0, exTotalMT = 0;
+                filteredData.forEach(d => {
+                    totalLen += d.lengthVal; totalNDT += d.lenNDT; totalDefect += d.lenDefect;
+                    if(d.visualRes === 'ACC') visualAcc++;
+                    if(d.utRes === 'ACC') utAcc++; else if(d.utRes === 'REJ') utRej++; else utPending++;
+                    if(d.utRep || d.utRes !== 'Pending') exTotalUT++;
+                    if(d.mtRep || d.mtRes !== 'Pending') exTotalMT++;
+                });
+                const repairRate = totalNDT > 0 ? (totalDefect / totalNDT * 100) : 0;
+                const kpiData = [
+                    ['Structure Dashboard V20.1 - Report Summary'],
+                    ['Report Date', moment().format('DD/MM/YYYY HH:mm')],
+                    [],
+                    ['KPI', 'Value'],
+                    ['Total Joints (Filtered)', filteredData.length],
+                    ['Total Weld Length', parseFloat(totalLen.toFixed(1))],
+                    ['Visual Accepted', visualAcc],
+                    ['Repair Rate (%)', parseFloat(repairRate.toFixed(2))],
+                    ['Total UT Joints', exTotalUT],
+                    ['Total MT Joints', exTotalMT],
+                    [],
+                    ['NDT Status', 'Count'],
+                    ['UT Accept', utAcc],
+                    ['UT Reject', utRej],
+                    ['UT Pending', utPending],
+                    ['Total NDT Length', parseFloat(totalNDT.toFixed(1))],
+                    ['Total Defect Length', parseFloat(totalDefect.toFixed(1))]
+                ];
+                const ws1 = XLSX.utils.aoa_to_sheet(kpiData);
+                ws1['!cols'] = [{wch:25},{wch:20}];
+                XLSX.utils.book_append_sheet(wb, ws1, 'KPI Summary');
+
+                // --- Sheet 2: Detailed Inspection Data (ALL filtered) ---
+                const detailHeaders = ['No.','Facility','Drawing No.','Joint','Weld Type','Size','Thickness','Welder','Welding Date','Length','NDT Length','Defect Length','UT Report','UT Result','UT Date','MT Report','MT Result','Visual Result','%UT','%MT'];
+                const detailRows = filteredData.map((d,i) => [
+                    i+1, d.fac, d.dwg, d.joint, d.weldType, d.size, d.thickness, d.welder, d.dateStr,
+                    d.lengthVal, d.lenNDT, d.lenDefect, d.utRep, d.utRes, d.utDateStr, d.mtRep, d.mtRes, d.visualRes, d.pctUT, d.pctMT
+                ]);
+                detailRows.push([]);
+                detailRows.push(['TOTAL','','','','','','','','', parseFloat(totalLen.toFixed(1)), parseFloat(totalNDT.toFixed(1)), parseFloat(totalDefect.toFixed(1)), '','Repair Rate:', repairRate.toFixed(2)+'%']);
+
+                const ws2 = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailRows]);
+                ws2['!cols'] = [{wch:6},{wch:15},{wch:20},{wch:15},{wch:12},{wch:8},{wch:8},{wch:12},{wch:12},{wch:10},{wch:10},{wch:12},{wch:18},{wch:10},{wch:12},{wch:18},{wch:10},{wch:12},{wch:8},{wch:8}];
+                XLSX.utils.book_append_sheet(wb, ws2, 'Inspection Data');
+
+                // --- Sheet 3: Welder Performance ---
+                const welderMap = {};
+                filteredData.forEach(d => {
+                    if(!d.welder) return;
+                    if(!welderMap[d.welder]) welderMap[d.welder] = { id: d.welder, joints: 0, totalLen: 0, defects: 0, defectLen: 0 };
+                    const w = welderMap[d.welder];
+                    w.joints++; w.totalLen += d.lengthVal; w.defectLen += d.lenDefect;
+                    if(d.lenDefect > 0 || d.utRes === 'REJ' || d.mtRes === 'REJ') w.defects++;
+                });
+                const allWelders = Object.values(welderMap).sort((a,b) => b.joints - a.joints);
+                const welderHeaders = ['Rank','Welder ID','Total Joints','Total Length','Defect Count','Defect Length','Repair Rate (%)','Performance'];
+                const welderRows = allWelders.map((w,i) => {
+                    const rate = w.joints > 0 ? parseFloat((w.defects/w.joints*100).toFixed(1)) : 0;
+                    let perf = 'Good';
+                    if(rate > 5) perf = 'Critical'; else if(rate > 2) perf = 'Warning';
+                    return [i+1, w.id, w.joints, parseFloat(w.totalLen.toFixed(1)), w.defects, parseFloat(w.defectLen.toFixed(1)), rate, perf];
+                });
+                const ws3 = XLSX.utils.aoa_to_sheet([welderHeaders, ...welderRows]);
+                ws3['!cols'] = [{wch:6},{wch:15},{wch:12},{wch:12},{wch:12},{wch:12},{wch:14},{wch:12}];
+                XLSX.utils.book_append_sheet(wb, ws3, 'Welder Performance');
+
+                // --- Sheet 4: Production Trend ---
+                const dateMap = {};
+                filteredData.forEach(d => {
+                    if(d.dateStr) {
+                        if(!dateMap[d.dateStr]) dateMap[d.dateStr] = { vol: 0, ndtLen: 0, defLen: 0, joints: 0, dt: d.dateTs || 0 };
+                        dateMap[d.dateStr].vol += d.lengthVal; dateMap[d.dateStr].ndtLen += d.lenNDT;
+                        dateMap[d.dateStr].defLen += d.lenDefect; dateMap[d.dateStr].joints++;
+                    }
+                });
+                const trendLabels = Object.keys(dateMap).sort((a,b) => dateMap[a].dt - dateMap[b].dt);
+                const trendHeaders = ['Welding Date','Joints','Production Length','NDT Length','Defect Length','Repair Rate (%)'];
+                const trendRows = trendLabels.map(k => {
+                    const m = dateMap[k];
+                    const r = m.ndtLen > 0 ? parseFloat((m.defLen / m.ndtLen * 100).toFixed(2)) : 0;
+                    return [k, m.joints, parseFloat(m.vol.toFixed(1)), parseFloat(m.ndtLen.toFixed(1)), parseFloat(m.defLen.toFixed(1)), r];
+                });
+                const ws4 = XLSX.utils.aoa_to_sheet([trendHeaders, ...trendRows]);
+                ws4['!cols'] = [{wch:15},{wch:8},{wch:16},{wch:12},{wch:12},{wch:14}];
+                XLSX.utils.book_append_sheet(wb, ws4, 'Production Trend');
+
+                // --- Sheet 5: Facility Summary ---
+                const facMap = {};
+                filteredData.forEach(d => {
+                    const f = d.fac || 'Unknown';
+                    if(!facMap[f]) facMap[f] = { joints: 0, len: 0, ndtLen: 0, defLen: 0, utAcc: 0, utRej: 0 };
+                    facMap[f].joints++; facMap[f].len += d.lengthVal; facMap[f].ndtLen += d.lenNDT; facMap[f].defLen += d.lenDefect;
+                    if(d.utRes === 'ACC') facMap[f].utAcc++; if(d.utRes === 'REJ') facMap[f].utRej++;
+                });
+                const facHeaders = ['Facility','Joints','Total Length','NDT Length','Defect Length','Repair Rate (%)','UT Accept','UT Reject'];
+                const facRows = Object.keys(facMap).sort().map(f => {
+                    const m = facMap[f];
+                    const r = m.ndtLen > 0 ? parseFloat((m.defLen/m.ndtLen*100).toFixed(2)) : 0;
+                    return [f, m.joints, parseFloat(m.len.toFixed(1)), parseFloat(m.ndtLen.toFixed(1)), parseFloat(m.defLen.toFixed(1)), r, m.utAcc, m.utRej];
+                });
+                const ws5 = XLSX.utils.aoa_to_sheet([facHeaders, ...facRows]);
+                ws5['!cols'] = [{wch:20},{wch:8},{wch:12},{wch:12},{wch:12},{wch:14},{wch:10},{wch:10}];
+                XLSX.utils.book_append_sheet(wb, ws5, 'Facility Summary');
+
+                XLSX.writeFile(wb, 'Structure_Dashboard_V20_1_FullReport.xlsx');
+                hideLoading();
+            }, 100);
+        }
+
+        function exportData() {
+            let csv = "\uFEFFNo,Facility,Drawing,Joint,WeldType,Size,Length,Thickness,Welder,Date,NDT Len,Defect Len,UT Report,UT Date,UT Status,MT Report,MT Status,Visual Result\n";
+            for(let i=0; i<filteredData.length; i++) {
+                const d = filteredData[i];
+                csv += `${i+1},"${d.fac}","${d.dwg}","${d.joint}","${d.weldType}","${d.size}",${d.lengthVal},"${d.thickness}","${d.welder}","${d.dateStr}",${d.lenNDT},${d.lenDefect},"${d.utRep}","${d.utDateStr}","${d.utRes}","${d.mtRep}","${d.mtRes}","${d.visualRes}"\n`;
+            }
+            const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); link.download = "Structure_V20_1_Export.csv"; link.click();
+        }
+
+        function exportPDF() {
+            const element = document.getElementById('printArea');
+            const opt = { margin: [5, 5, 5, 5], filename: 'Structure_Dashboard_V20_1.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 1.5 }, jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' } };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        // ========== AI DATA ANALYSIS ENGINE ==========
+        function generateAIReport() {
+            if(!filteredData.length) return alert('Chưa có dữ liệu để phân tích!');
+            showLoading();
+            document.getElementById('loadingText').innerText = 'AI đang phân tích dữ liệu...';
+
+            setTimeout(() => {
+                const report = runAIAnalysis();
+                document.getElementById('aiReportContent').innerHTML = report;
+                hideLoading();
+                new bootstrap.Modal(document.getElementById('aiModal')).show();
+            }, 800);
+        }
+
+        function runAIAnalysis() {
+            const data = filteredData;
+            const n = data.length;
+
+            // === 1. BASIC STATISTICS ===
+            let tLen=0, tNDT=0, tDef=0, vAcc=0, utAcc=0, utRej=0, utPend=0;
+            const lengths=[], defects=[], ndtLens=[];
+            data.forEach(d => {
+                tLen+=d.lengthVal; tNDT+=d.lenNDT; tDef+=d.lenDefect;
+                if(d.visualRes==='ACC') vAcc++;
+                if(d.utRes==='ACC') utAcc++; else if(d.utRes==='REJ') utRej++; else utPend++;
+                if(d.lengthVal>0) lengths.push(d.lengthVal);
+                if(d.lenDefect>0) defects.push(d.lenDefect);
+                if(d.lenNDT>0) ndtLens.push(d.lenNDT);
+            });
+            const repairRate = tNDT>0 ? (tDef/tNDT*100) : 0;
+            const avgLen = n>0 ? tLen/n : 0;
+            const stdLen = calcStd(lengths);
+
+            // === 2. WELDER ANALYSIS ===
+            const wMap = {};
+            data.forEach(d => {
+                if(!d.welder) return;
+                if(!wMap[d.welder]) wMap[d.welder]={id:d.welder, joints:0, len:0, defLen:0, defCount:0, ndtLen:0};
+                const w=wMap[d.welder]; w.joints++; w.len+=d.lengthVal; w.defLen+=d.lenDefect; w.ndtLen+=d.lenNDT;
+                if(d.lenDefect>0||d.utRes==='REJ'||d.mtRes==='REJ') w.defCount++;
+            });
+            const welders = Object.values(wMap).sort((a,b)=>b.joints-a.joints);
+            const anomalyWelders = welders.filter(w => {
+                const rate = w.ndtLen>0 ? (w.defLen/w.ndtLen*100) : 0;
+                return rate > repairRate * 1.5 && w.joints >= 5;
+            });
+
+            // === 3. FACILITY ANALYSIS ===
+            const fMap = {};
+            data.forEach(d => {
+                const f = d.fac||'Unknown';
+                if(!fMap[f]) fMap[f]={name:f, joints:0, len:0, defLen:0, ndtLen:0, utRej:0};
+                const fm=fMap[f]; fm.joints++; fm.len+=d.lengthVal; fm.defLen+=d.lenDefect; fm.ndtLen+=d.lenNDT;
+                if(d.utRes==='REJ') fm.utRej++;
+            });
+            const facilities = Object.values(fMap).sort((a,b)=>b.joints-a.joints);
+
+            // === 4. TREND ANALYSIS ===
+            const dateMap = {};
+            data.forEach(d => {
+                if(!d.dateStr) return;
+                if(!dateMap[d.dateStr]) dateMap[d.dateStr]={dt:d.dateTs||0, joints:0, len:0, ndtLen:0, defLen:0};
+                const dm=dateMap[d.dateStr]; dm.joints++; dm.len+=d.lengthVal; dm.ndtLen+=d.lenNDT; dm.defLen+=d.lenDefect;
+            });
+            const sortedDates = Object.keys(dateMap).sort((a,b)=>dateMap[a].dt-dateMap[b].dt);
+            let trendDirection = 'stable';
+            if(sortedDates.length >= 4) {
+                const half = Math.floor(sortedDates.length/2);
+                let r1n=0,r1d=0,r2n=0,r2d=0;
+                sortedDates.slice(0,half).forEach(k=>{r1n+=dateMap[k].defLen;r1d+=dateMap[k].ndtLen;});
+                sortedDates.slice(half).forEach(k=>{r2n+=dateMap[k].defLen;r2d+=dateMap[k].ndtLen;});
+                const rate1=r1d>0?(r1n/r1d*100):0, rate2=r2d>0?(r2n/r2d*100):0;
+                if(rate2>rate1*1.2) trendDirection='worsening';
+                else if(rate2<rate1*0.8) trendDirection='improving';
+            }
+
+            // === 5. WELD TYPE ANALYSIS ===
+            const wtMap = {};
+            data.forEach(d => {
+                const wt = d.weldType||'Unknown';
+                if(!wtMap[wt]) wtMap[wt]={type:wt, joints:0, defLen:0, ndtLen:0};
+                wtMap[wt].joints++; wtMap[wt].defLen+=d.lenDefect; wtMap[wt].ndtLen+=d.lenNDT;
+            });
+            const weldTypes = Object.values(wtMap).sort((a,b)=>b.joints-a.joints);
+
+            // === BUILD HTML REPORT ===
+            let html = '';
+
+            // -- Executive Summary --
+            const overallRisk = repairRate>5?'HIGH':repairRate>2?'MEDIUM':'LOW';
+            const riskColor = overallRisk==='HIGH'?'#ef4444':overallRisk==='MEDIUM'?'#f59e0b':'#10b981';
+            html += `<div class="ai-section" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-color:#c4b5fd;">`;
+            html += `<div class="ai-section-title" style="color:#5b21b6;"><i class="fas fa-brain"></i> Tóm tắt Điều hành (Executive Summary)</div>`;
+            html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">`;
+            html += `<div style="text-align:center;padding:12px;background:white;border-radius:8px;"><div style="font-size:1.4rem;font-weight:800;color:#5b21b6;">${n.toLocaleString()}</div><div style="font-size:0.7rem;color:#6b7280;">Mối hàn phân tích</div></div>`;
+            html += `<div style="text-align:center;padding:12px;background:white;border-radius:8px;"><div style="font-size:1.4rem;font-weight:800;color:#2563eb;">${tLen.toFixed(0)}</div><div style="font-size:0.7rem;color:#6b7280;">Tổng chiều dài (mm)</div></div>`;
+            html += `<div style="text-align:center;padding:12px;background:white;border-radius:8px;"><div style="font-size:1.4rem;font-weight:800;color:${riskColor};">${repairRate.toFixed(2)}%</div><div style="font-size:0.7rem;color:#6b7280;">Tỷ lệ sửa chữa</div></div>`;
+            html += `<div style="text-align:center;padding:12px;background:white;border-radius:8px;"><div style="font-size:1.4rem;font-weight:800;color:${riskColor};">${overallRisk}</div><div style="font-size:0.7rem;color:#6b7280;">Mức rủi ro</div></div>`;
+            html += `</div>`;
+            // Overall risk bar
+            const riskPct = Math.min(repairRate*10, 100);
+            html += `<div class="ai-risk-bar"><div class="ai-risk-fill" style="width:${riskPct}%;background:${riskColor};"></div></div>`;
+            html += `<div style="font-size:0.75rem;color:#6b7280;margin-top:4px;">Thanh đánh giá rủi ro tổng thể dự án</div>`;
+            html += `</div>`;
+
+            // -- NDT Stats --
+            html += `<div class="ai-section">`;
+            html += `<div class="ai-section-title"><i class="fas fa-search" style="color:#2563eb;"></i> Phân tích NDT</div>`;
+            html += `<div class="ai-metric"><span>UT Accept</span><span class="ai-tag ai-tag-success">${utAcc} (${n>0?(utAcc/n*100).toFixed(1):0}%)</span></div>`;
+            html += `<div class="ai-metric"><span>UT Reject</span><span class="ai-tag ai-tag-danger">${utRej} (${n>0?(utRej/n*100).toFixed(1):0}%)</span></div>`;
+            html += `<div class="ai-metric"><span>UT Pending</span><span class="ai-tag ai-tag-info">${utPend} (${n>0?(utPend/n*100).toFixed(1):0}%)</span></div>`;
+            html += `<div class="ai-metric"><span>Visual Accept</span><span class="ai-tag ai-tag-success">${vAcc} / ${n}</span></div>`;
+            html += `<div class="ai-metric"><span>Tổng NDT Length</span><span><b>${tNDT.toFixed(1)} mm</b></span></div>`;
+            html += `<div class="ai-metric"><span>Tổng Defect Length</span><span class="text-danger fw-bold">${tDef.toFixed(1)} mm</span></div>`;
+            const completionPct = n>0?((utAcc+utRej)/n*100).toFixed(1):0;
+            html += `<div style="margin-top:8px;"><small class="text-muted">Tiến độ kiểm tra NDT: <b>${completionPct}%</b></small>`;
+            html += `<div class="ai-risk-bar"><div class="ai-risk-fill" style="width:${completionPct}%;background:#2563eb;"></div></div></div>`;
+            html += `</div>`;
+
+            // -- Trend Analysis --
+            html += `<div class="ai-section">`;
+            const trendIcon = trendDirection==='improving'?'📈 Xu hướng CẢI THIỆN':trendDirection==='worsening'?'📉 Xu hướng XẤU ĐI':'📊 Xu hướng ỔN ĐỊNH';
+            const trendTag = trendDirection==='improving'?'ai-tag-success':trendDirection==='worsening'?'ai-tag-danger':'ai-tag-info';
+            html += `<div class="ai-section-title"><i class="fas fa-chart-line" style="color:#f59e0b;"></i> Phân tích Xu hướng</div>`;
+            html += `<div class="ai-metric"><span>Xu hướng chất lượng</span><span class="ai-tag ${trendTag}">${trendIcon}</span></div>`;
+            html += `<div class="ai-metric"><span>Chiều dài TB/mối hàn</span><span><b>${avgLen.toFixed(1)} mm</b></span></div>`;
+            html += `<div class="ai-metric"><span>Độ lệch chuẩn (Length)</span><span>${stdLen.toFixed(1)}</span></div>`;
+            html += `<div class="ai-metric"><span>Số ngày sản xuất</span><span><b>${sortedDates.length}</b> ngày</span></div>`;
+            if(sortedDates.length>0) {
+                html += `<div class="ai-metric"><span>Giai đoạn</span><span>${sortedDates[0]} → ${sortedDates[sortedDates.length-1]}</span></div>`;
+            }
+            html += `</div>`;
+
+            // -- Anomaly Welders --
+            html += `<div class="ai-section" style="${anomalyWelders.length>0?'background:#fef2f2;border-color:#fecaca;':''}">`;
+            html += `<div class="ai-section-title"><i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i> Phát hiện Bất thường - Thợ hàn</div>`;
+            if(anomalyWelders.length === 0) {
+                html += `<p class="text-success mb-0" style="font-size:0.85rem;"><i class="fas fa-check-circle me-1"></i> Không phát hiện thợ hàn bất thường. Tất cả trong mức an toàn.</p>`;
+            } else {
+                anomalyWelders.forEach(w => {
+                    const wr = w.ndtLen>0?(w.defLen/w.ndtLen*100):0;
+                    html += `<div class="ai-metric"><span><b>${w.id}</b> — ${w.joints} joints, Repair: <span class="text-danger fw-bold">${wr.toFixed(1)}%</span></span><span class="ai-tag ai-tag-danger">CẢNH BÁO</span></div>`;
+                });
+                html += `<div class="ai-rec mt-2"><i class="fas fa-lightbulb me-1 text-warning"></i> <b>AI Đề xuất:</b> Rà soát chứng chỉ và đào tạo lại các thợ hàn trên. Tạm dừng giao việc nếu repair rate > 10%.</div>`;
+            }
+            html += `</div>`;
+
+            // -- Facility Risk --
+            html += `<div class="ai-section">`;
+            html += `<div class="ai-section-title"><i class="fas fa-building" style="color:#7c3aed;"></i> Đánh giá Rủi ro theo Facility</div>`;
+            facilities.slice(0,8).forEach(f => {
+                const fr = f.ndtLen>0?(f.defLen/f.ndtLen*100):0;
+                const fRisk = fr>5?'HIGH':fr>2?'MEDIUM':'LOW';
+                const fColor = fRisk==='HIGH'?'#ef4444':fRisk==='MEDIUM'?'#f59e0b':'#10b981';
+                const fTag = fRisk==='HIGH'?'ai-tag-danger':fRisk==='MEDIUM'?'ai-tag-warning':'ai-tag-success';
+                html += `<div class="ai-metric"><span><b>${f.name}</b> — ${f.joints} joints</span><span>Rate: <b>${fr.toFixed(1)}%</b> <span class="ai-tag ${fTag} ms-1">${fRisk}</span></span></div>`;
+                html += `<div class="ai-risk-bar mb-1"><div class="ai-risk-fill" style="width:${Math.min(fr*10,100)}%;background:${fColor};"></div></div>`;
+            });
+            html += `</div>`;
+
+            // -- Weld Type Analysis --
+            html += `<div class="ai-section">`;
+            html += `<div class="ai-section-title"><i class="fas fa-fire" style="color:#f59e0b;"></i> Phân tích theo Loại hàn</div>`;
+            weldTypes.slice(0,6).forEach(wt => {
+                const wr = wt.ndtLen>0?(wt.defLen/wt.ndtLen*100):0;
+                const wtTag = wr>5?'ai-tag-danger':wr>2?'ai-tag-warning':'ai-tag-success';
+                html += `<div class="ai-metric"><span><b>${wt.type||'-'}</b> — ${wt.joints} joints</span><span>Repair: <b>${wr.toFixed(1)}%</b> <span class="ai-tag ${wtTag} ms-1">${wr>5?'Cao':wr>2?'TB':'Tốt'}</span></span></div>`;
+            });
+            html += `</div>`;
+
+            // -- AI Recommendations --
+            html += `<div class="ai-section" style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-color:#6ee7b7;">`;
+            html += `<div class="ai-section-title" style="color:#065f46;"><i class="fas fa-lightbulb"></i> Kết luận & Đề xuất của AI</div>`;
+            const recs = [];
+            if(repairRate>5) recs.push({icon:'🔴', text:'Tỷ lệ sửa chữa VƯỢT MỨC AN TOÀN (>5%). Cần họp khẩn với đội giám sát và dừng thi công tại khu vực rủi ro cao.'});
+            else if(repairRate>2) recs.push({icon:'🟡', text:'Tỷ lệ sửa chữa ở mức CẢNH BÁO (2-5%). Tăng cường giám sát hàng ngày.'});
+            else recs.push({icon:'🟢', text:'Tỷ lệ sửa chữa trong mức AN TOÀN (<2%). Tiếp tục duy trì quy trình hiện tại.'});
+            if(trendDirection==='worsening') recs.push({icon:'📉', text:'Xu hướng chất lượng ĐANG XẤU ĐI. Kiểm tra nguyên vật liệu, thiết bị hàn, và điều kiện thời tiết gần đây.'});
+            if(trendDirection==='improving') recs.push({icon:'📈', text:'Xu hướng chất lượng CẢI THIỆN. Ghi nhận và khen thưởng đội ngũ thợ hàn.'});
+            if(anomalyWelders.length>0) recs.push({icon:'👷', text:`Có ${anomalyWelders.length} thợ hàn bất thường: ${anomalyWelders.map(w=>w.id).join(', ')}. Đề xuất đào tạo lại hoặc rà soát chứng chỉ.`});
+            if(utPend > n*0.3) recs.push({icon:'⏳', text:`Còn ${utPend} mối hàn (${(utPend/n*100).toFixed(0)}%) chưa kiểm tra NDT. Đẩy nhanh tiến độ kiểm tra.`});
+            const highRiskFacs = facilities.filter(f=>f.ndtLen>0&&(f.defLen/f.ndtLen*100)>5);
+            if(highRiskFacs.length>0) recs.push({icon:'🏭', text:`Facility rủi ro cao: ${highRiskFacs.map(f=>f.name).join(', ')}. Tập trung nguồn lực giám sát.`});
+            recs.push({icon:'📊', text:`Tổng hợp: ${n} mối hàn, ${welders.length} thợ hàn, ${facilities.length} facility. Dữ liệu đủ tin cậy cho phân tích.`});
+
+            recs.forEach(r => { html += `<div class="ai-rec">${r.icon} ${r.text}</div>`; });
+            html += `</div>`;
+
+            // -- Footer timestamp --
+            html += `<div class="text-center text-muted" style="font-size:0.7rem;"><i class="fas fa-clock me-1"></i>Báo cáo AI tạo lúc: ${moment().format('DD/MM/YYYY HH:mm:ss')} | ${n} mối hàn đã phân tích</div>`;
+
+            return html;
+        }
+
+        function calcStd(arr) {
+            if(arr.length<2) return 0;
+            const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
+            return Math.sqrt(arr.reduce((s,v)=>s+(v-mean)**2,0)/(arr.length-1));
+        }
+
+        function exportAIReportWord() {
+            const srcContent = document.getElementById('aiReportContent');
+            if(!srcContent.innerHTML) return alert('No AI report to export!');
+
+            // Build a complete HTML document with inline styles for Word compatibility
+            const styles = `
+                <style>
+                    body { font-family: Arial, sans-serif; font-size: 11pt; color: #1f2937; padding: 20px; }
+                    h2 { color: #4f46e5; text-align: center; margin-bottom: 20px; }
+                    .ai-section { margin-bottom: 16px; padding: 14px; border: 1px solid #d1d5db; border-radius: 8px; }
+                    .ai-section-title { font-weight: bold; font-size: 12pt; margin-bottom: 10px; }
+                    .ai-metric { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f3f4f6; font-size: 10pt; }
+                    .ai-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 8pt; font-weight: bold; }
+                    .ai-tag-danger { background: #fee2e2; color: #991b1b; }
+                    .ai-tag-warning { background: #fef3c7; color: #92400e; }
+                    .ai-tag-success { background: #d1fae5; color: #065f46; }
+                    .ai-tag-info { background: #dbeafe; color: #1e40af; }
+                    .ai-rec { padding: 8px 12px; background: #f8fafc; border-left: 3px solid #7c3aed; margin-bottom: 6px; font-size: 10pt; }
+                    .ai-risk-bar { height: 8px; border-radius: 4px; background: #e5e7eb; margin-top: 4px; }
+                    .ai-risk-fill { height: 8px; border-radius: 4px; }
+                    .text-danger { color: #ef4444; }
+                    .text-success { color: #10b981; }
+                    .fw-bold { font-weight: bold; }
+                    table { border-collapse: collapse; width: 100%; }
+                    td, th { padding: 4px 8px; border: 1px solid #e5e7eb; font-size: 10pt; }
+                </style>`;
+
+            // Replace emojis with text for Word compatibility
+            let content = srcContent.innerHTML
+                .replace(/📈/g, '[UP]').replace(/📉/g, '[DOWN]').replace(/📊/g, '[STATS]')
+                .replace(/🔴/g, '[!!]').replace(/🟡/g, '[!]').replace(/🟢/g, '[OK]')
+                .replace(/👷/g, '[W]').replace(/⏳/g, '[WAIT]').replace(/🏭/g, '[F]');
+
+            const htmlDoc = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+            <head><meta charset="utf-8">${styles}</head>
+            <body>
+                <h2>AI Data Analysis Report</h2>
+                <p style="text-align:center;color:#6b7280;font-size:9pt;">Structure Dashboard V20.1 | Generated: ${moment().format('DD/MM/YYYY HH:mm:ss')}</p>
+                <hr style="border:1px solid #e5e7eb;margin:16px 0;">
+                ${content}
+            </body></html>`;
+
+            const blob = new Blob(['\ufeff', htmlDoc], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'AI_Analysis_Report_V20_1.doc';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // ========== FEATURE 1: WEEKLY REMINDERS ==========
+        function updateWeeklyReminders() {
+            if(!filteredData.length) return;
+            const now = Date.now();
+            const weekAgo = now - 7*24*60*60*1000;
+            const twoWeeksAgo = now - 14*24*60*60*1000;
+            let thisWeek = {joints:0,len:0,acc:0,rej:0,pending:0,defLen:0,ndtLen:0};
+            let lastWeek = {joints:0,len:0,acc:0,rej:0,pending:0};
+
+            filteredData.forEach(d => {
+                if(d.dateTs && d.dateTs >= weekAgo) {
+                    thisWeek.joints++; thisWeek.len+=d.lengthVal; thisWeek.ndtLen+=d.lenNDT; thisWeek.defLen+=d.lenDefect;
+                    if(d.utRes==='ACC') thisWeek.acc++; else if(d.utRes==='REJ') thisWeek.rej++; else thisWeek.pending++;
+                } else if(d.dateTs && d.dateTs >= twoWeeksAgo) {
+                    lastWeek.joints++; lastWeek.len+=d.lengthVal;
+                    if(d.utRes==='ACC') lastWeek.acc++; else if(d.utRes==='REJ') lastWeek.rej++; else lastWeek.pending++;
+                }
+            });
+
+            const rr = thisWeek.ndtLen>0?(thisWeek.defLen/thisWeek.ndtLen*100).toFixed(2):'0';
+            const trend = thisWeek.joints > lastWeek.joints ? '<span class="text-success">↑</span>' : thisWeek.joints < lastWeek.joints ? '<span class="text-danger">↓</span>' : '→';
+            let h = '';
+            h += `<div class="stat-row"><span>Joints welded this week</span><b>${thisWeek.joints} ${trend}</b></div>`;
+            h += `<div class="stat-row"><span>Last week</span><span>${lastWeek.joints} joints</span></div>`;
+            h += `<div class="stat-row"><span>Length this week</span><b>${thisWeek.len.toFixed(0)} mm</b></div>`;
+            h += `<div class="stat-row"><span>UT Accept</span><span class="ai-tag ai-tag-success">${thisWeek.acc}</span></div>`;
+            h += `<div class="stat-row"><span>UT Reject</span><span class="ai-tag ai-tag-danger">${thisWeek.rej}</span></div>`;
+            h += `<div class="stat-row"><span>Pending</span><span class="ai-tag ai-tag-info">${thisWeek.pending}</span></div>`;
+            h += `<div class="stat-row"><span>Repair Rate (week)</span><b class="text-danger">${rr}%</b></div>`;
+            document.getElementById('weeklyStats').innerHTML = h;
+
+            // Crosscheck reminders for primary drawings
+            const primaryDwgs = [...new Set(filteredData.filter(d => d.dwg && d.dwg.toLowerCase().includes('primary')).map(d => d.dwg))].slice(0,10);
+            let cc = '';
+            if(primaryDwgs.length>0) {
+                primaryDwgs.forEach(dwg => {
+                    const joints = filteredData.filter(d => d.dwg === dwg);
+                    const pending = joints.filter(d => d.utRes === 'Pending').length;
+                    cc += `<div class="stat-row"><span>${dwg}</span><span>${joints.length} joints (${pending} pending)</span></div>`;
+                });
+            } else {
+                cc = '<span class="text-muted small">No primary drawings found in current data.</span>';
+            }
+            document.getElementById('crosscheckList').innerHTML = cc;
+        }
+
+        // ========== FEATURE 2: CALENDAR ==========
+        let calDate = new Date();
+        let calEvents = [];
+
+        function changeMonth(dir) { calDate.setMonth(calDate.getMonth()+dir); renderCalendar(); }
+
+        function renderCalendar() {
+            const y = calDate.getFullYear(), m = calDate.getMonth();
+            document.getElementById('calMonthLabel').innerText = `${calDate.toLocaleString('en',{month:'long'})} ${y}`;
+            const firstDay = new Date(y,m,1).getDay();
+            const daysInMonth = new Date(y,m+1,0).getDate();
+            const today = new Date();
+            let html = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cal-header">${d}</div>`).join('');
+            for(let i=0;i<firstDay;i++) html += '<div class="cal-day"></div>';
+            for(let d=1;d<=daysInMonth;d++) {
+                const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const isToday = today.getFullYear()===y && today.getMonth()===m && today.getDate()===d;
+                const evts = calEvents.filter(e=>e.date===dateStr);
+                const hasEvt = evts.length>0;
+                const overdue = hasEvt && new Date(dateStr)<today && evts.some(e=>e.status!=='done');
+                let cls = 'cal-day';
+                if(isToday) cls += ' today';
+                if(hasEvt) cls += ' has-event';
+                if(overdue) cls += ' overdue';
+                html += `<div class="${cls}" onclick="showDayEvents('${dateStr}')">${d}${hasEvt?'<span class="cal-dot"></span>':''}</div>`;
+            }
+            document.getElementById('calGrid').innerHTML = html;
+            renderEventList();
+            renderUpcomingIRN();
+        }
+
+        function showDayEvents(dateStr) {
+            document.getElementById('evtDate').value = dateStr;
+            const evts = calEvents.filter(e=>e.date===dateStr);
+            if(evts.length>0) alert(evts.map(e=>`${e.title} ${e.drawing?'('+e.drawing+')':''}`).join('\n'));
+        }
+
+        async function addCalendarEvent() {
+            const date = document.getElementById('evtDate').value;
+            const title = document.getElementById('evtTitle').value.trim();
+            if(!date||!title) return alert('Please fill date and title.');
+            const evt = {date, title, drawing: document.getElementById('evtDrawing').value.trim(), status:'pending', createdAt: Date.now()};
+            const tx = idb.db.transaction('CalendarEvents','readwrite');
+            tx.objectStore('CalendarEvents').add(evt);
+            tx.oncomplete = async () => { await loadCalendarEvents(); renderCalendar(); };
+            document.getElementById('evtTitle').value = '';
+            document.getElementById('evtDrawing').value = '';
+        }
+
+        async function loadCalendarEvents() {
+            return new Promise(resolve => {
+                if(!idb.db) return resolve();
+                const tx = idb.db.transaction('CalendarEvents','readonly');
+                const req = tx.objectStore('CalendarEvents').getAll();
+                req.onsuccess = () => { calEvents = req.result || []; resolve(); };
+                req.onerror = () => resolve();
+            });
+        }
+
+        function renderEventList() {
+            const upcoming = calEvents.sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);
+            let h = '';
+            upcoming.forEach(e => {
+                const cls = e.status==='done'?'event-item done':'event-item';
+                h += `<div class="${cls}"><div><b>${e.title}</b><br><small class="text-muted">${e.date} ${e.drawing?'| '+e.drawing:''}</small></div><button class="btn btn-sm btn-outline-danger" onclick="deleteEvent(${e.id})"><i class="fas fa-trash"></i></button></div>`;
+            });
+            document.getElementById('eventList').innerHTML = h || '<span class="text-muted small">No events</span>';
+        }
+
+        function renderUpcomingIRN() {
+            const now = new Date(); now.setHours(0,0,0,0);
+            const weekLater = new Date(now); weekLater.setDate(weekLater.getDate()+7);
+            const upcoming = calEvents.filter(e => { const d = new Date(e.date); return d >= now && d <= weekLater && e.status !== 'done'; });
+            let h = '';
+            if(upcoming.length>0) {
+                upcoming.forEach(e => { h += `<div class="stat-row"><span><b>${e.title}</b> ${e.drawing?'('+e.drawing+')':''}</span><span class="ai-tag ai-tag-warning">${e.date}</span></div>`; });
+            } else { h = '<span class="text-muted small">No upcoming IRN in next 7 days.</span>'; }
+            document.getElementById('upcomingIRN').innerHTML = h;
+        }
+
+        async function deleteEvent(id) {
+            const tx = idb.db.transaction('CalendarEvents','readwrite');
+            tx.objectStore('CalendarEvents').delete(id);
+            tx.oncomplete = async () => { await loadCalendarEvents(); renderCalendar(); };
+        }
+
+        // ========== FEATURE 3: MULTI-DRAWING SEARCH ==========
+        function searchMultiDrawings() {
+            const input = document.getElementById('searchDrawings').value.trim();
+            if(!input) return alert('Please enter Drawing numbers.');
+            const drawings = input.split(/[,\n]+/).map(s=>s.trim()).filter(s=>s);
+            doDrawingSearch(drawings);
+        }
+
+        function uploadIRNFile(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                let drawings = [];
+                if(file.name.endsWith('.xlsx')||file.name.endsWith('.xls')) {
+                    const wb = XLSX.read(new Uint8Array(evt.target.result), {type:'array'});
+                    const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
+                    drawings = data.map(r => r['Drawing No.'] || r['Drawing'] || r['DWG'] || Object.values(r)[0] || '').filter(s=>s);
+                } else {
+                    drawings = evt.target.result.split(/[\n,]+/).map(s=>s.trim()).filter(s=>s);
+                }
+                document.getElementById('searchDrawings').value = drawings.join('\n');
+                doDrawingSearch(drawings);
+            };
+            if(file.name.endsWith('.xlsx')||file.name.endsWith('.xls')) reader.readAsArrayBuffer(file);
+            else reader.readAsText(file);
+        }
+
+        function doDrawingSearch(drawings) {
+            const data = filteredData.length ? filteredData : rawData;
+            let html = `<div class="fw-bold small mb-2">Results: ${drawings.length} drawings searched</div>`;
+            let found = 0, notFound = 0;
+            drawings.forEach(dwg => {
+                const matches = data.filter(d => d.dwg.toLowerCase().includes(dwg.toLowerCase()));
+                if(matches.length > 0) {
+                    found++;
+                    const utDone = matches.filter(d=>d.utRes!=='Pending').length;
+                    const mtDone = matches.filter(d=>d.mtRes!=='Pending').length;
+                    const pctUT = (utDone/matches.length*100).toFixed(0);
+                    html += `<div class="search-result-card found"><b>${dwg}</b> — ${matches.length} joints | UT: ${utDone}/${matches.length} (${pctUT}%) | MT: ${mtDone}/${matches.length}</div>`;
+                } else {
+                    notFound++;
+                    html += `<div class="search-result-card notfound"><b>${dwg}</b> — <span class="text-danger">Not found in data</span></div>`;
+                }
+            });
+            html = `<div class="d-flex gap-3 mb-2 small"><span class="ai-tag ai-tag-success">Found: ${found}</span><span class="ai-tag ai-tag-danger">Not found: ${notFound}</span></div>` + html;
+            document.getElementById('searchResults').innerHTML = html;
+        }
+
+        // ========== FEATURE 4: AI CHATBOX ==========
+        function toggleChatbox() {
+            const panel = document.getElementById('chatboxPanel');
+            panel.classList.toggle('open');
+            if(panel.classList.contains('open')) document.getElementById('chatInput').focus();
+        }
+
+        function sendChat() {
+            const input = document.getElementById('chatInput');
+            const q = input.value.trim();
+            if(!q) return;
+            addChatMsg(q, 'user');
+            input.value = '';
+            setTimeout(() => { const answer = processChat(q); addChatMsg(answer, 'bot'); }, 300);
+        }
+
+        function addChatMsg(text, type) {
+            const body = document.getElementById('chatBody');
+            body.innerHTML += `<div class="chat-msg ${type}"><div class="bubble">${text}</div></div>`;
+            body.scrollTop = body.scrollHeight;
+        }
+
+        function processChat(q) {
+            const data = filteredData.length ? filteredData : rawData;
+            if(!data.length) return 'Chưa có dữ liệu. Vui lòng upload file CSV/XLSX trước.';
+            const ql = q.toLowerCase();
+
+            // Drawing query
+            const dwgMatch = ql.match(/(?:drawing|dwg|bản vẽ)\s*[:\s]?\s*([\w\-\.]+)/i);
+            if(dwgMatch) {
+                const dwg = dwgMatch[1];
+                const matches = data.filter(d => d.dwg.toLowerCase().includes(dwg));
+                if(matches.length===0) return `Không tìm thấy drawing "${dwg}" trong dữ liệu.`;
+                const utDone = matches.filter(d=>d.utRes!=='Pending').length;
+                const mtDone = matches.filter(d=>d.mtRes!=='Pending').length;
+                return `<b>Drawing ${dwg}</b><br>Joints: ${matches.length}<br>UT done: ${utDone}/${matches.length} (${(utDone/matches.length*100).toFixed(0)}%)<br>MT done: ${mtDone}/${matches.length}`;
+            }
+
+            // Welder query
+            const wMatch = ql.match(/(?:welder|thợ hàn|tho han)\s*[:\s]?\s*([\w\-]+)/i);
+            if(wMatch) {
+                const wid = wMatch[1].toUpperCase();
+                const matches = data.filter(d => d.welder.includes(wid));
+                if(matches.length===0) return `Không tìm thấy welder "${wid}".`;
+                const defects = matches.filter(d=>d.lenDefect>0||d.utRes==='REJ').length;
+                const rate = matches.length>0?(defects/matches.length*100).toFixed(1):0;
+                return `<b>Welder ${wid}</b><br>Joints: ${matches.length}<br>Defects: ${defects}<br>Repair rate: ${rate}%`;
+            }
+
+            // Facility query
+            const fMatch = ql.match(/(?:facility|fac|khu vực)\s*[:\s]?\s*([\w\-]+)/i);
+            if(fMatch) {
+                const fid = fMatch[1];
+                const matches = data.filter(d => d.fac.toLowerCase().includes(fid.toLowerCase()));
+                if(matches.length===0) return `Không tìm thấy facility "${fid}".`;
+                const tLen = matches.reduce((a,c)=>a+c.lengthVal,0);
+                const tNDT = matches.reduce((a,c)=>a+c.lenNDT,0);
+                const tDef = matches.reduce((a,c)=>a+c.lenDefect,0);
+                const rr = tNDT>0?(tDef/tNDT*100).toFixed(2):0;
+                return `<b>Facility: ${fid}</b><br>Joints: ${matches.length}<br>Length: ${tLen.toFixed(0)} mm<br>Repair rate: ${rr}%`;
+            }
+
+            // %UT / %NDT query
+            if(ql.includes('%ut') || ql.includes('%ndt') || ql.includes('phan tram') || ql.includes('phần trăm')) {
+                const total = data.length;
+                const utDone = data.filter(d=>d.utRes!=='Pending').length;
+                const mtDone = data.filter(d=>d.mtRes!=='Pending').length;
+                return `<b>% NDT Progress</b><br>UT completed: ${utDone}/${total} (${(utDone/total*100).toFixed(1)}%)<br>MT completed: ${mtDone}/${total} (${(mtDone/total*100).toFixed(1)}%)`;
+            }
+
+            // Repair rate / tỷ lệ
+            if(ql.includes('repair') || ql.includes('tỷ lệ') || ql.includes('ty le') || ql.includes('sửa chữa')) {
+                const tNDT = data.reduce((a,c)=>a+c.lenNDT,0);
+                const tDef = data.reduce((a,c)=>a+c.lenDefect,0);
+                const rr = tNDT>0?(tDef/tNDT*100).toFixed(2):0;
+                return `<b>Repair Rate</b>: ${rr}%<br>NDT Length: ${tNDT.toFixed(0)} mm<br>Defect Length: ${tDef.toFixed(0)} mm`;
+            }
+
+            // General / total
+            if(ql.includes('tổng') || ql.includes('total') || ql.includes('summary')) {
+                const tLen = data.reduce((a,c)=>a+c.lengthVal,0);
+                return `<b>Tổng hợp</b><br>Joints: ${data.length}<br>Total length: ${tLen.toFixed(0)} mm<br>Welders: ${new Set(data.map(d=>d.welder).filter(w=>w)).size}<br>Facilities: ${new Set(data.map(d=>d.fac).filter(f=>f)).size}`;
+            }
+
+            return `Tôi hiểu các câu hỏi về:<br>• <b>drawing [tên]</b> — tra drawing<br>• <b>welder [ID]</b> — tra thợ hàn<br>• <b>facility [tên]</b> — tra khu vực<br>• <b>%UT</b> — tiến độ NDT<br>• <b>repair rate</b> — tỷ lệ sửa chữa<br>• <b>tổng</b> — tổng quan`;
+        }
+
+        // ========== FEATURE 5: NOTES ==========
+        async function saveNote() {
+            const text = document.getElementById('noteText').value.trim();
+            if(!text) return alert('Please write a note.');
+            const tag = document.getElementById('noteTag').value.trim();
+            const note = {text, tag, createdAt: Date.now()};
+            const tx = idb.db.transaction('UserNotes','readwrite');
+            tx.objectStore('UserNotes').add(note);
+            tx.oncomplete = () => { document.getElementById('noteText').value=''; document.getElementById('noteTag').value=''; loadNotes(); };
+        }
+
+        async function loadNotes() {
+            if(!idb.db) return;
+            const tx = idb.db.transaction('UserNotes','readonly');
+            const req = tx.objectStore('UserNotes').getAll();
+            req.onsuccess = () => {
+                const notes = (req.result||[]).sort((a,b)=>b.createdAt-a.createdAt);
+                let h = '';
+                notes.forEach(n => {
+                    const time = new Date(n.createdAt).toLocaleString('vi-VN');
+                    h += `<div class="note-item"><div>${n.text}${n.tag?` <span class="ai-tag ai-tag-info">${n.tag}</span>`:''}</div><div class="d-flex justify-content-between mt-1"><span class="note-time">${time}</span><span class="note-del" onclick="deleteNote(${n.id})"><i class="fas fa-trash"></i></span></div></div>`;
+                });
+                document.getElementById('notesList').innerHTML = h || '<span class="text-muted small">No notes yet.</span>';
+            };
+        }
+
+        async function deleteNote(id) {
+            const tx = idb.db.transaction('UserNotes','readwrite');
+            tx.objectStore('UserNotes').delete(id);
+            tx.oncomplete = () => loadNotes();
+        }
+
+        // ========== INIT NEW FEATURES on data load ==========
+        const origApplyFilters = applyFilters;
+        applyFilters = function() {
+            origApplyFilters();
+            setTimeout(() => {
+                updateWeeklyReminders();
+                if(typeof renderCalendar === 'function') renderCalendar();
+            }, 50);
+        };
+
+        // Load calendar & notes after DB init
+        const origDOMLoaded = window._domLoadedDone;
+        setTimeout(async () => {
+            if(idb.db) {
+                await loadCalendarEvents();
+                renderCalendar();
+                loadNotes();
+            }
+        }, 500);
+    </script>
+</body>
+</html>

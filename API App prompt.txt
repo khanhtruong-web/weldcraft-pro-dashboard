@@ -1,0 +1,65 @@
+1. Tổng quan về Hệ thống (Executive Overview)
+Tên nền tảng: NDT Integrity + SketchMapp. 
+Mục đích cốt lõi: Đây là một nền tảng chuyên dụng được thiết kế cho các đội ngũ NDT (Kiểm tra không phá hủy) và Quản lý an toàn cơ khí (Mechanical Integrity). Hệ thống kết hợp việc thu thập dữ liệu kiểm tra, tính toán theo tiêu chuẩn/mã thiết kế (code-based calculations), vẽ sơ đồ hiện trường, báo cáo API, lập nhật ký hình ảnh và đóng gói hồ sơ nghiệm thu khách hàng vào chung một quy trình đồng nhất. 
+Mục tiêu chính: Giảm thời gian quay vòng báo cáo, loại bỏ việc sử dụng các bảng tính spreadsheet rời rạc, xóa bỏ các điểm nghẽn khi phải phụ thuộc vào phòng CAD, và nâng cao tính nhất quán cho các bộ hồ sơ kiểm định. 
+2. Tóm tắt Sản phẩm & Đối tượng Người dùng (Platform Summary)
+Các sản phẩm cốt lõi:
+NDT Integrity Suite: Phục vụ toàn bộ quy trình kiểm định và báo cáo API/NDT. 
+SketchMapp: Một công cụ độc lập dùng để vẽ sơ đồ hiện trường và ánh xạ (mapping) dữ liệu. 
+Đối tượng người dùng hỗ trợ: Các kỹ sư kiểm định API (API inspectors), các công ty NDT, nhóm quản lý an toàn cơ khí, nhà thầu đường ống, kỹ sư ăn mòn, đội ngũ kiểm tra bồn bể, chủ sở hữu - người vận hành nhà máy (owner-users) và các công ty kiểm định quy mô nhỏ. 
+Đầu ra của hệ thống (Deliverables): Các báo cáo file PDF chuyên nghiệp, sơ đồ xuất bản vẽ, gói tính toán kỹ thuật, nhật ký hình ảnh, bảng quy trình kỹ thuật (technique sheets), chứng chỉ đính kèm và gói tệp tin bàn giao dạng ZIP cho khách hàng. 
+3. Các Tiêu chuẩn và Quy trình Kiểm định Hỗ trợ (Supported Standards)
+Nền tảng hiện tại đang hỗ trợ các tiêu chuẩn và quy trình công việc sau:
+API 570: Kiểm định đường ống (Piping inspection). 
+API 510: Kiểm định bình áp lực (Pressure vessel inspection).
+API 653: Kiểm định bồn chứa (Tank inspection).
+Quy trình kiểm tra độ dày: Quản lý các vị trí đo độ dày (CML - Condition Monitoring Locations / TML - Thickness Monitoring Locations) và quản lý dữ liệu đo đạc (Thickness/gauge data management).
+4. Chi tiết các Tính năng Kỹ thuật chuyên sâu (Technical Features)
+Module Tính toán & Quản lý dữ liệu NDT/API:
+Thực hiện các phép tính toán kỹ thuật tích hợp theo tiêu chuẩn API trực tiếp trên nền tảng. 
+Quản lý các vị trí kiểm tra (CML), theo dõi độ dày thành ống/thiết bị. 
+Hỗ trợ nhập dữ liệu hàng loạt từ các thiết bị đo độ dày hiện trường thông qua file CSV hoặc tính năng Import. 
+Module Bản vẽ & Sơ đồ hiện trường (SketchMapp):
+Tích hợp công cụ vẽ phác thảo hiện trường chuyên dụng, giúp kỹ sư tự vẽ sơ đồ thiết bị mà không cần bàn giao qua phòng CAD vẽ lại nhằm giảm độ trễ. 
+Ánh xạ trực tiếp vị trí các điểm đo (CML) và hình ảnh khuyết tật lên trên bản vẽ, tạo ra mối liên kết dữ liệu trực quan. 
+Hệ thống Quản lý Dự án & Đóng gói Hồ sơ (Project Packaging):
+Lưu trữ và tải trạng thái dự án có cấu trúc (Project save/load) giúp người dùng mở lại các gói kiểm định để tiếp tục làm việc. 
+Hợp nhất toàn bộ tài liệu liên quan bao gồm: báo cáo chính, bản vẽ sơ đồ, các phép tính toán, tệp đính kèm và các file hỗ trợ khác thành một gói Deliverable hoàn chỉnh. 
+5. Giá trị mang lại cho Người mua (Buyer Value)
+Tiết kiệm thời gian: Giảm thiểu đáng kể thời gian viết báo cáo lặp đi lặp lại, loại bỏ sự chậm trễ khi chờ đợi phòng CAD chỉnh sửa bản vẽ và các quy trình sử dụng bảng tính rời rạc. 
+Tính nhất quán: Chuẩn hóa các công thức tính toán, định dạng bản vẽ, các đề mục báo cáo, danh mục kiểm tra (checklists), bảng kỹ thuật và cách thức đóng gói hồ sơ cuối cùng. 
+Khả năng sử dụng thực tế cao: Ứng dụng được thiết kế dựa trên đúng luồng công việc thực tế của một kỹ sư kiểm định ở hiện trường, thay vì là một công cụ CAD hoặc soạn thảo văn bản chung chung. 
+Truy xuất nguồn gốc dữ liệu (Data traceability): Liên kết chặt chẽ giữa số liệu đo tại điểm CML, bản vẽ sơ đồ hiện trường, kết quả tính toán, căn cứ kiểm định (inspection basis), hình ảnh chụp khuyết tật và các phần tương ứng trong báo cáo. 
+Khả năng mở rộng hệ thống: Có thể vận hành như một sản phẩm phần mềm chạy cục bộ trên máy tính Windows (local desktop product) và có tiềm năng mở rộng sang các quy trình làm việc được hỗ trợ bằng công nghệ đám mây (cloud-enabled workflow potential). 
+Strict Modularity: Split logic into clean, componentized files to handle complexity without reaching token generation limits:
+types.ts: Holds unified TS bindings for measurements, pinpoints, and diagnostic quiz schemas.
+MockData.ts: Populates standard industrial starter exams matching real-world UT Level II topics.
+ApiCalculator.tsx: Hosts standard design pressure vessel, piping, and storage tank formulas.
+PhotoLogger.tsx: Manages high-end defective photo logs, automatic and manual captions, and interactive photo target annotations.
+DashboardStats.tsx: Focuses on bento statistical summaries, category mastery progression, and historical inspect logs.
+SketchMapp.tsx: Offers a robust 2D schematic vector CAD drawing board and coordinate pinpoint plotter.
+driveSync.ts: Implements client-side Firebase Auth sign-ins and lightweight REST multi-part Drive sync operations.
+🚀 Key Engineering Upgrades Installed
+ASME & API Standards Calculations Center (ApiCalculator):
+Computes minimum design wall thicknesses 
+ dynamically based on standard formulations:
+API 510: Cylinder Shells 
+.
+API 570: Piping wall thickness 
+, with built-in corrosion rates (
+), residual life expectations, and half-life inspection intervals.
+API 653: Storage tank shell rings via the 1-Foot Method 
+.
+Fully supports live KaTeX LaTeX formula rendering.
+SketchMapp 2D Blueprint Coordinates:
+Features manual drafting tools (cylinders, circles, lines) to structure CAD outlines natively.
+Plots inspection spot pinpoints (TML/CML) directly on drawing regions.
+Measures status dynamically (Safe, Warn, Critical) and feeds real-time coordinates seamlessly to tables.
+Multi-Mode Exam Simulator & Mistake Banks:
+Dual playmodes: Focus Slides Mode (provides instant LaTeX tutor key annotations) or Scroll List Mode.
+Incorporates high-contrast navigation guides and flag trackers.
+Persists a detailed Mistake Bank allowing technicians to analyze previous incorrect submissions.
+Fault Photo Logger (PhotoLogger):
+Supports uploading real-field inspection defect photos with drag-and-drop.
+Provides an interactive focal point target overlays tool that places warning indicators on specific photograph coordinates.
+Manages automated captions alongside size and pitting depth inputs.

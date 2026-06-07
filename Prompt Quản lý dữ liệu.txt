@@ -1,0 +1,27 @@
+Quản lý dữ liệu
+hãy đóng vai là chuyên gia về phần mềm máy tính và chuyên gia quản lý data base tôi đang cần một chương trình nhập và quản lý dữ liệu thi công nghiệm thi cho thiết bị, sử dụng trên window máy tính.
+1. Phần mềm sẽ có chức năng nhập nhiệu theo các yêu cầu sau
+- import data base cho phần mềm, data base có thể nhập manual (có form nhập liệu riêng) cũng có thể upload excel file. Trong trường hợp upload excel file thì phần mềm phải tự kiểm tra sự tồn tại của tag thiết bị để bổ sung, nếu đã tồn tại thì bỏ qua.
+    - Tag thiết bị (là duy nhất, dùng để truy xuất thông tin) [cột 1]
+    - Tên thiết bị [cột 2]
+    - subsystem của thiết bị [cột 3A]
+    - system của thiết bị [cột 3B]
+    - ITR-A No [cột 4], một tag có thể có nhiều ITR-A No.
+- Cập nhật tình trạng tiến độ lắp đặt, kiểm tra, báo cáo của từng tag thiết bị hàng ngày, tạo một form nhập liệu (từ giờ sẽ gọi là form 1, tên form sẽ là Select Equipment ) cho mục này sử dụng nút bấm. khi đã chọn “cập nhật tiến độ” trước hết người dùng phải nhập mã số thiết bị, mã số có thể nhập full hoặc nhập một phần, app sẽ tự gợi ý list mã số có chứa ký tự tương cùng với tên thiết bị trong data base và ITR-A No, nếu thiết bị chưa có trong data base thì app sẽ đề xuất update data base. 
+- Sau khi đã chọn được tag thiết bị, form nhập liệu thông tin mới dạng table sẽ hiện ra (gọi là form 2 tên là ITR-A UPDATE), 5 cột đầu mặc định sẽ tự điền thông tin database của tag đã chọn. Form 2 sẽ phải linh động như sheet, cho phép input từ keyboard, copy paste từ sheet ngoài nhiều dòng dữ liệu cùng lúc. form nhập liệu này phải có số row không cố định, sau khi kết thúc nhập liệu người dùng bấm save thì app tự cập nhật thông tin vào master data, các cột của form 2 sẽ bao gồm các cột thông tin sau, nhưng phải có chức năng bổ sung thêm cột thông tin nếu cần:
+        - ITR-A NFI (dữ liệu text)[cột 5]
+        - ITR-A Date (dữ liệu date)[cột 6]
+        - ITR-A Status [cột 7]: cột này sẽ tự diền thông tin theo logic sau: nếu cột 5 trống => trống, nếu cột 5 có thông tin => On-going, Nếu Cột 8 có thông tin => Done
+        - ITR-A Record [cột 8] (dữ liệu date, nhập ngày tháng ký báo cáo)
+        - ITR-A Note (dữ liệu text) [cột 9], để nhập tự do thông tin ghi chú mỗi đợt kiểm tra
+- Form 3 ( tên là Punch List Update), cũng là dạng table, chức năng nhập dữ liệu linh động như ở Sheet cho phép nhập tay, copy nhiều dòng từ nguồn bên ngoài như excel, google sheet. khi gọi form 3 thì các thông tin sẽ cần nhập cung cấp để app gợi ý: cột 1, cột 4, cột 5. khi nhập tag áp sẽ tự tạo list gợi ý của 3 cột này để người dùng chọn. thông tin nhập liệu form 3 sẽ gồm các cột
+        - PL Description (dữ liệu text) [cột 10]
+        - PL Cat (dữ liệu text) [cột 11]. Cột nãy sẽ có 3 loại category là A, B, C
+        - PL status: cột này sẽ tự diền thông tin theo logic sau: nếu cột 10 trống => trống, nếu cột 10 có thông tin => Open, Nếu Cột 12 có thông tin => Closed
+        - PL Date (dữ liệu date) [cột 12]
+        - PL Note (dữ liệu text) [cột 13], để nhập tự do thông tin ghi chú của punch list
+1. Chức năng báo cáo:
+- Báo cáo tiến độ:
+    - Báo cáo 1 - ITR-A Status. để xuất báo cáo thì app sẽ yêu cầu nhập ngày bắt đầu và ngày bắt đầu và ngày kết thúc, app sẽ dựa vào khoảng thời gian này để lọc toàn bộ thông tin dữ liệu của master data theo cột 6. báo cáo sẽ được preview như sheet trong excel và cũng cho phép export dạng table ra excel.
+    - Báo cáo 2 - Summary Status. Export toàn thông tin của master data ra excel
+1. Giao diện App. App sẽ có preview như dạng table excel sheet, các cột sẽ có sẵn các chế độ filter để lọc dữ liệu, sort để sắp xếp dữ liệu. có các nút chức năng nhập dữ liệu như đã miêu tả ở trên, menu khi nhập liệu menu nhập sẽ chia màn hình thành 2 nửa, nửa bên trái vẫn là preview master data, nửa bên phải là form nhập liệu. Trong khi nhập liệu các dữ liệu đã có sẵn vẫn được show lên, cho phép chọn và sửa đổi. App cũng có chức năng search theo Tag thiết bị (cột 1) hoặc theo ITR-A NFI (cột 5), khi nhập thông tin thì app sẽ tự gợi ý theo dạng list down để xem trước.
