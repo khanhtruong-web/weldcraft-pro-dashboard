@@ -447,6 +447,70 @@
                     console.warn('[GDrive] syncPomodoroToSheets failed:', e);
                 }
             }
+
+            async createDriveSubFolder(folderName) {
+                try {
+                    const root = await this.ensureRootFolder();
+                    if(!root?.id) return null;
+                    const folder = await this.ensureFolder(folderName, root.id);
+                    return folder.id;
+                } catch(e) {
+                    console.error("GDrive folder creation failed:", e);
+                    return null;
+                }
+            }
+
+            async uploadOrUpdatePDF(fileName, pdfBlob, folderId = null) {
+                try {
+                    const root = await this.ensureRootFolder();
+                    const parentFolderId = folderId || root.id;
+                    
+                    const q = encodeURIComponent(`'${parentFolderId}' in parents and name='${fileName}' and mimeType='application/pdf' and trashed=false`);
+                    const searchRes = await this.callAPI(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`);
+                    
+                    let fileId = null;
+                    if(searchRes && searchRes.files && searchRes.files.length > 0) {
+                        fileId = searchRes.files[0].id;
+                    }
+
+                    const metadata = { name: fileName };
+                    if(!fileId) {
+                        metadata.parents = [parentFolderId];
+                    }
+
+                    const mBoundary = 'weldcraft_pdf_sync_boundary';
+                    const reqBody = `--${mBoundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+                                    `${JSON.stringify(metadata)}\r\n` +
+                                    `--${mBoundary}\r\nContent-Type: application/pdf\r\n\r\n`;
+                    
+                    const uint8 = new Uint8Array(await pdfBlob.arrayBuffer());
+                    const payload = new Blob([reqBody, uint8, `\r\n--${mBoundary}--`]);
+                    
+                    let url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name';
+                    let method = 'POST';
+                    if (fileId) {
+                        url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart&fields=id,name`;
+                        method = 'PATCH';
+                    }
+                    
+                    const res = await fetch(url, {
+                        method: method,
+                        headers: {
+                            'Authorization': `Bearer ${this.accessToken}`,
+                            'Content-Type': `multipart/related; boundary=${mBoundary}`
+                        },
+                        body: payload
+                    });
+                    
+                    if (!res.ok) throw new Error(`Upload HTTP error ${res.status}`);
+                    const data = await res.json();
+                    console.log(`[GDrive] Uploaded PDF: ${data.name} (${data.id})`);
+                    return data.id;
+                } catch(e) {
+                    console.error("GDrive upload failed:", e);
+                    throw e;
+                }
+            }
         }
 
         window.gSync = new GoogleWorkspaceManager();
@@ -5448,7 +5512,6 @@
             document.getElementById('pdf-notes-sidebar').classList.remove('hidden');
 
             showToast('Loading: ' + (name.length > 40 ? name.substring(0, 40) + '...' : name), 'success', 2500);
-        }: ' + (name.length > 40 ? name.substring(0, 40) + '...' : name), 'success', 2500);
         }
 
         // =====================================================
@@ -5813,305 +5876,7 @@
             `;
         }
 
-        // ============================================================================
-        // GOOGLE DRIVE & WORKSPACE ENGINE (GIS Integration)
-        // ============================================================================
-        class GoogleWorkspaceManager {
-            constructor() {
-                this.accessToken = localStorage.getItem('gdrive_token');
-                this.tokenExpiry = parseInt(localStorage.getItem('gdrive_token_expiry') || '0');
-                this.refreshTimer = null;
-                this._isRefreshing = false;
-                
-                if (this.accessToken && this.tokenExpiry > Date.now()) {
-                    this.scheduleRefresh();
-                }
-            }
 
-            isTokenValid() { return !!(this.accessToken && this.tokenExpiry && this.tokenExpiry > Date.now()); }
-            isTokenNearExpiry() { return !!(this.accessToken && this.tokenExpiry && (this.tokenExpiry - Date.now()) < 600000); }
-
-            async ensureValidToken() {
-                if (!this.accessToken) return false;
-                if (this.isTokenNearExpiry() && !this._isRefreshing) {
-                    console.log('[GDrive] Token near expiry, pre-emptive refresh...');
-                    return await this._refreshTokenOnce();
-                }
-                return this.isTokenValid();
-            }
-
-            scheduleRefresh() {
-                if (this.refreshTimer) clearTimeout(this.refreshTimer);
-                const delay = Math.max(1000, (this.tokenExpiry || 0) - Date.now() - 600000);
-                this.refreshTimer = setTimeout(() => this.trySilentAuth(), delay);
-            }
-
-            getClientId() { 
-                return localStorage.getItem('gdrive_client_id') || ''; 
-            }
-
-            getFolderName() {
-                return localStorage.getItem('gdrive_folder_name') || 'WeldCraft_Pro_Workspace';
-            }
-
-            get _scopes() {
-                return [
-                    'https://www.googleapis.com/auth/drive.file',
-                    'https://www.googleapis.com/auth/userinfo.email',
-                    'https://www.googleapis.com/auth/userinfo.profile'
-                ].join(' ');
-            }
-
-            _saveTokenData(res) {
-                this.accessToken = res.access_token;
-                this.tokenExpiry = Date.now() + (res.expires_in ? res.expires_in * 1000 : 3500 * 1000);
-                localStorage.setItem('gdrive_token', this.accessToken);
-                localStorage.setItem('gdrive_token_expiry', String(this.tokenExpiry));
-                this.scheduleRefresh();
-            }
-
-            async _fetchUserEmail() {
-                try {
-                    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                        headers: { 'Authorization': 'Bearer ' + this.accessToken }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.email) {
-                            localStorage.setItem('gdrive_user_email', data.email);
-                            localStorage.setItem('gdrive_user_name', data.name);
-                            nblmUser = {
-                                name: data.name || 'Google User',
-                                email: data.email,
-                                initials: (data.name || 'GU').split(' ').map(n=>n[0]).join('').slice(0, 2).toUpperCase()
-                            };
-                            localStorage.setItem('nblm_user', JSON.stringify(nblmUser));
-                            renderNblmSignedIn();
-                        }
-                        return data;
-                    }
-                } catch (e) { console.warn('[GDrive] _fetchUserEmail failed:', e); }
-                return null;
-            }
-
-            async callAPI(url, method = 'GET', body = null, isMultipart = false) {
-                await this.ensureValidToken();
-                if (!this.accessToken) {
-                    const refreshed = await this.trySilentAuth();
-                    if (!refreshed) throw new Error("Please sign in with Google Drive");
-                }
-
-                const headers = { 'Authorization': 'Bearer ' + this.accessToken };
-                if (!isMultipart) headers['Content-Type'] = 'application/json';
-
-                const opts = { method, headers };
-                if (body) opts.body = isMultipart ? body : JSON.stringify(body);
-
-                let res = await fetch(url, opts);
-                if (res.status === 401 && !this._isRefreshing) {
-                    const refreshed = await this._refreshTokenOnce();
-                    if (refreshed) {
-                        opts.headers['Authorization'] = 'Bearer ' + this.accessToken;
-                        res = await fetch(url, opts);
-                    }
-                }
-
-                if (!res.ok) {
-                    throw new Error(`Google API Error ${res.status}`);
-                }
-                return res.json();
-            }
-
-            async _refreshTokenOnce() {
-                if (this._isRefreshing) return false;
-                this._isRefreshing = true;
-                try { return await this._doSilentAuth(); } catch (e) { return false; }
-                finally { this._isRefreshing = false; }
-            }
-
-            _doSilentAuth() {
-                return new Promise((resolve) => {
-                    const clientId = this.getClientId();
-                    if (!clientId) return resolve(false);
-                    const savedEmail = localStorage.getItem('gdrive_user_email');
-                    
-                    const config = {
-                        client_id: clientId,
-                        scope: this._scopes,
-                        prompt: '',
-                        callback: async (res) => {
-                            if (res.error) { resolve(false); return; }
-                            this._saveTokenData(res);
-                            resolve(true);
-                        }
-                    };
-                    if (savedEmail) config.hint = savedEmail;
-                    try { 
-                        google.accounts.oauth2.initTokenClient(config).requestAccessToken({ prompt: '' }); 
-                    } catch (e) { 
-                        resolve(false); 
-                    }
-                });
-            }
-
-            async handleAuthClick() {
-                if (window.location.protocol === 'file:') {
-                    showToast('⚠️ Google Security restriction: Please open the app via Local Server (e.g. http://127.0.0.1:8000) instead of double-clicking the HTML file.', 'warning', 5000);
-                    return;
-                }
-                const clientId = this.getClientId();
-                if (!clientId) {
-                    showToast('Please enter Google OAuth Client ID in Settings first.', 'warning');
-                    openSettingsModal();
-                    return;
-                }
-                
-                if (typeof google === 'undefined' || !google.accounts) {
-                    showToast('Google GIS Library not loaded. Check internet connection.', 'error');
-                    return;
-                }
-                
-                const savedEmail = localStorage.getItem('gdrive_user_email');
-                const config = {
-                    client_id: clientId,
-                    scope: this._scopes,
-                    callback: async (res) => {
-                        if (res.error) {
-                            showToast('OAuth Auth failed: ' + res.error, 'error');
-                            return;
-                        }
-                        this._saveTokenData(res);
-                        const userInfo = await this._fetchUserEmail();
-                        showToast('Connected to Google Drive successfully!', 'success');
-                        this.ensureRootFolder();
-                    }
-                };
-                if (savedEmail) config.hint = savedEmail;
-                google.accounts.oauth2.initTokenClient(config).requestAccessToken();
-            }
-
-            async trySilentAuth() {
-                if (window.location.protocol === 'file:') return false;
-                const clientId = this.getClientId();
-                if (!clientId) return false;
-                if (typeof google === 'undefined' || !google.accounts) return false;
-                
-                const savedEmail = localStorage.getItem('gdrive_user_email');
-                const config = {
-                    client_id: clientId,
-                    scope: this._scopes,
-                    prompt: '',
-                    callback: async (res) => {
-                        if (res.error) return;
-                        this._saveTokenData(res);
-                        if (!localStorage.getItem('gdrive_user_email')) {
-                            await this._fetchUserEmail();
-                        } else {
-                            const userObj = localStorage.getItem('nblm_user');
-                            if (userObj) {
-                                nblmUser = JSON.parse(userObj);
-                                renderNblmSignedIn();
-                            }
-                        }
-                    }
-                };
-                if (savedEmail) config.hint = savedEmail;
-                try { 
-                    google.accounts.oauth2.initTokenClient(config).requestAccessToken({ prompt: '' }); 
-                } catch (e) {
-                    console.warn(e);
-                }
-            }
-
-            async ensureFolder(name, parentId) {
-                const q = encodeURIComponent(`'${parentId}' in parents and name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
-                const res = await this.callAPI(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)&pageSize=5`);
-                if (res && res.files && res.files.length > 0) return res.files[0];
-                const created = await this.callAPI('https://www.googleapis.com/drive/v3/files', 'POST', {
-                    name, mimeType: 'application/vnd.google-apps.folder', parents: [parentId]
-                });
-                console.log(`[GDrive] Created folder: ${name} (${created?.id})`);
-                return created;
-            }
-
-            async ensureRootFolder() {
-                const rootName = this.getFolderName();
-                const q = encodeURIComponent(`name='${rootName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
-                const res = await this.callAPI(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)&pageSize=3`);
-                if (res && res.files && res.files.length > 0) return res.files[0];
-
-                const created = await this.callAPI('https://www.googleapis.com/drive/v3/files', 'POST', {
-                    name: rootName, mimeType: 'application/vnd.google-apps.folder'
-                });
-                console.log(`[GDrive] Created root: ${rootName} (${created?.id})`);
-                return created;
-            }
-
-            async createDriveSubFolder(folderName) {
-                try {
-                    const root = await this.ensureRootFolder();
-                    if(!root?.id) return null;
-                    const folder = await this.ensureFolder(folderName, root.id);
-                    return folder.id;
-                } catch(e) {
-                    console.error("GDrive folder creation failed:", e);
-                    return null;
-                }
-            }
-
-            async uploadOrUpdatePDF(fileName, pdfBlob, folderId = null) {
-                try {
-                    const root = await this.ensureRootFolder();
-                    const parentFolderId = folderId || root.id;
-                    
-                    const q = encodeURIComponent(`'${parentFolderId}' in parents and name='${fileName}' and mimeType='application/pdf' and trashed=false`);
-                    const searchRes = await this.callAPI(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`);
-                    
-                    let fileId = null;
-                    if(searchRes && searchRes.files && searchRes.files.length > 0) {
-                        fileId = searchRes.files[0].id;
-                    }
-
-                    const metadata = { name: fileName };
-                    if(!fileId) {
-                        metadata.parents = [parentFolderId];
-                    }
-
-                    const mBoundary = 'weldcraft_pdf_sync_boundary';
-                    const reqBody = `--${mBoundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
-                                    `${JSON.stringify(metadata)}\r\n` +
-                                    `--${mBoundary}\r\nContent-Type: application/pdf\r\n\r\n`;
-                    
-                    const uint8 = new Uint8Array(await pdfBlob.arrayBuffer());
-                    const payload = new Blob([reqBody, uint8, `\r\n--${mBoundary}--`]);
-                    
-                    let url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name';
-                    let method = 'POST';
-                    if (fileId) {
-                        url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart&fields=id,name`;
-                        method = 'PATCH';
-                    }
-                    
-                    const res = await fetch(url, {
-                        method: method,
-                        headers: {
-                            'Authorization': `Bearer ${this.accessToken}`,
-                            'Content-Type': `multipart/related; boundary=${mBoundary}`
-                        },
-                        body: payload
-                    });
-                    
-                    if (!res.ok) throw new Error(`Upload HTTP error ${res.status}`);
-                    const data = await res.json();
-                    console.log(`[GDrive] Uploaded PDF: ${data.name} (${data.id})`);
-                    return data.id;
-                } catch(e) {
-                    console.error("GDrive upload failed:", e);
-                    throw e;
-                }
-            }
-        }
-        window.gSync = new GoogleWorkspaceManager();
 
         // ============================================================================
         // EX-WELD FEATURE EXTENSION SYSTEM (8 NHÓM TÍNH NĂNG NÂNG CẤP)
@@ -7866,21 +7631,21 @@
                     <table class="w-full border-collapse border border-gray-400 text-[10px]">
                         <tr>
                             <td class="border border-gray-400 p-2 font-bold bg-gray-100 w-1/4">PROJECT:</td>
-                            <td class="border border-gray-400 p-2 w-1/4">\${project}</td>
+                            <td class="border border-gray-400 p-2 w-1/4">${project}</td>
                             <td class="border border-gray-400 p-2 font-bold bg-gray-100 w-1/4">INSPECTION DATE:</td>
-                            <td class="border border-gray-400 p-2 w-1/4">\${date}</td>
+                            <td class="border border-gray-400 p-2 w-1/4">${date}</td>
                         </tr>
                         <tr>
                             <td class="border border-gray-400 p-2 font-bold bg-gray-100">WELD JOINT ID:</td>
-                            <td class="border border-gray-400 p-2">\${weldId}</td>
+                            <td class="border border-gray-400 p-2">${weldId}</td>
                             <td class="border border-gray-400 p-2 font-bold bg-gray-100">CWI INSPECTOR:</td>
-                            <td class="border border-gray-400 p-2">\${inspector}</td>
+                            <td class="border border-gray-400 p-2">${inspector}</td>
                         </tr>
                         <tr>
                             <td class="border border-gray-400 p-2 font-bold bg-gray-100">WELDER STENCIL ID:</td>
-                            <td class="border border-gray-400 p-2">\${welder}</td>
+                            <td class="border border-gray-400 p-2">${welder}</td>
                             <td class="border border-gray-400 p-2 font-bold bg-gray-100">FINAL DISPOSITION:</td>
-                            <td class="border border-gray-400 p-2 font-bold text-center \${disposition === 'PASS' ? 'text-green-600 bg-green-5' : 'text-red-600 bg-red-5'}">\${disposition}</td>
+                            <td class="border border-gray-400 p-2 font-bold text-center ${disposition === 'PASS' ? 'text-green-600 bg-green-5' : 'text-red-600 bg-red-5'}">${disposition}</td>
                         </tr>
                     </table>
 
@@ -7888,10 +7653,10 @@
                         <div>
                             <h3 class="font-bold border-b border-gray-400 pb-1 text-xs mb-1.5 bg-gray-50 p-1">STAGE 1: BEFORE WELDING VERIFICATION</h3>
                             <table class="w-full text-[10px]">
-                                \${chkBefore.map(item => `
+                                ${chkBefore.map(item => `
                                     <tr>
-                                        <td class="py-1 w-8 text-center font-bold font-mono">\${getStatusMark(item.checked)}</td>
-                                        <td class="py-1 text-gray-700">\${item.label}</td>
+                                        <td class="py-1 w-8 text-center font-bold font-mono">${getStatusMark(item.checked)}</td>
+                                        <td class="py-1 text-gray-700">${item.label}</td>
                                     </tr>
                                 `).join('')}
                             </table>
@@ -7900,10 +7665,10 @@
                         <div>
                             <h3 class="font-bold border-b border-gray-400 pb-1 text-xs mb-1.5 bg-gray-50 p-1">STAGE 2: DURING WELDING VERIFICATION</h3>
                             <table class="w-full text-[10px]">
-                                \${chkDuring.map(item => `
+                                ${chkDuring.map(item => `
                                     <tr>
-                                        <td class="py-1 w-8 text-center font-bold font-mono">\${getStatusMark(item.checked)}</td>
-                                        <td class="py-1 text-gray-700">\${item.label}</td>
+                                        <td class="py-1 w-8 text-center font-bold font-mono">${getStatusMark(item.checked)}</td>
+                                        <td class="py-1 text-gray-700">${item.label}</td>
                                     </tr>
                                 `).join('')}
                             </table>
@@ -7912,10 +7677,10 @@
                         <div>
                             <h3 class="font-bold border-b border-gray-400 pb-1 text-xs mb-1.5 bg-gray-50 p-1">STAGE 3: AFTER WELDING VERIFICATION</h3>
                             <table class="w-full text-[10px]">
-                                \${chkAfter.map(item => `
+                                ${chkAfter.map(item => `
                                     <tr>
-                                        <td class="py-1 w-8 text-center font-bold font-mono">\${getStatusMark(item.checked)}</td>
-                                        <td class="py-1 text-gray-700">\${item.label}</td>
+                                        <td class="py-1 w-8 text-center font-bold font-mono">${getStatusMark(item.checked)}</td>
+                                        <td class="py-1 text-gray-700">${item.label}</td>
                                     </tr>
                                 `).join('')}
                             </table>
@@ -7924,7 +7689,7 @@
 
                     <div class="space-y-1.5">
                         <h3 class="font-bold border-b border-gray-400 pb-1 text-xs bg-gray-50 p-1">REMARKS &amp; NON-CONFORMANCE NOTES</h3>
-                        <p class="p-2 border border-gray-300 rounded bg-gray-50 italic text-[10px] leading-relaxed text-gray-800">\${remarks}</p>
+                        <p class="p-2 border border-gray-300 rounded bg-gray-50 italic text-[10px] leading-relaxed text-gray-800">${remarks}</p>
                     </div>
 
                     <div class="pt-8 flex justify-between text-[10px] text-gray-600">
@@ -7934,7 +7699,7 @@
                         </div>
                         <div class="text-center w-1/3">
                             <span class="w-24 mx-auto mb-1 border-b border-gray-400 block"></span>
-                            <span class="font-bold text-black">\${inspector}</span>
+                            <span class="font-bold text-black">${inspector}</span>
                         </div>
                     </div>
                 </div>
