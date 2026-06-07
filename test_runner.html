@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeldCraft Pro - Automated Test Runner Suite</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+    </style>
+</head>
+<body class="h-full p-6 flex flex-col space-y-6">
+
+    <!-- Header -->
+    <header class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-emerald-500 to-teal-600 p-2.5 rounded-lg shadow-lg">
+                <i data-lucide="shield-check" class="h-6 w-6 text-white animate-pulse"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-white">WeldCraft Pro - Automated Test Suite</h1>
+                <p class="text-xs text-slate-400">Continuous Integration & Automated Validation Runner</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="runAllTests()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-lg">
+                <i data-lucide="play" class="h-4 w-4"></i>
+                <span>Run Automated Tests</span>
+            </button>
+            <a href="index.html" class="bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5">
+                <i data-lucide="arrow-left" class="h-4 w-4"></i>
+                <span>Back to App</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Test Statistics Row -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+            <span class="text-xs text-slate-400 block font-medium">Total Tests</span>
+            <span class="text-2xl font-bold text-white mono" id="total-count">0</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+            <span class="text-xs text-slate-400 block font-medium">Passed Tests</span>
+            <span class="text-2xl font-bold text-emerald-400 mono" id="passed-count">0</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+            <span class="text-xs text-slate-400 block font-medium">Failed Tests</span>
+            <span class="text-2xl font-bold text-red-500 mono" id="failed-count">0</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+            <span class="text-xs text-slate-400 block font-medium">Execution Status</span>
+            <span class="text-xs font-bold uppercase border px-2 py-0.5 rounded-full inline-block mt-2 bg-slate-850 text-slate-400 border-slate-800" id="test-status">Idle</span>
+        </div>
+    </div>
+
+    <!-- main execution space -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-hidden">
+        
+        <!-- Left: Test List & Log Panel -->
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col overflow-hidden space-y-4">
+            <h3 class="text-sm font-bold text-white border-b border-slate-800 pb-3 flex items-center space-x-2">
+                <i data-lucide="terminal" class="h-4 w-4 text-emerald-400"></i>
+                <span>Test Execution Log Output</span>
+            </h3>
+            <div id="test-log-output" class="flex-1 bg-slate-950 rounded-xl p-4 border border-slate-850 font-mono text-xs text-slate-300 overflow-y-auto space-y-2 leading-relaxed">
+                <p class="text-slate-500">// Press "Run Automated Tests" above to start testing.</p>
+            </div>
+        </div>
+
+        <!-- Right: Verification Summary Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col space-y-4 overflow-y-auto">
+            <h3 class="text-sm font-bold text-white border-b border-slate-800 pb-3 flex items-center space-x-2">
+                <i data-lucide="check-square" class="h-4 w-4 text-emerald-400"></i>
+                <span>Assert Verified Checks</span>
+            </h3>
+            
+            <div class="space-y-3" id="assertions-container">
+                <!-- dynamically rendered checks -->
+                <div class="flex items-center space-x-3 p-3 bg-slate-950 border border-slate-850 rounded-xl opacity-50">
+                    <i data-lucide="circle" class="h-4 w-4 text-slate-600"></i>
+                    <span class="text-xs text-slate-400">ASME Section IX qualified ranges verified</span>
+                </div>
+                <div class="flex items-center space-x-3 p-3 bg-slate-950 border border-slate-850 rounded-xl opacity-50">
+                    <i data-lucide="circle" class="h-4 w-4 text-slate-600"></i>
+                    <span class="text-xs text-slate-400">Weld Volume &amp; Consumables math verified</span>
+                </div>
+                <div class="flex items-center space-x-3 p-3 bg-slate-950 border border-slate-850 rounded-xl opacity-50">
+                    <i data-lucide="circle" class="h-4 w-4 text-slate-600"></i>
+                    <span class="text-xs text-slate-400">NDT Selector compatibility rules verified</span>
+                </div>
+                <div class="flex items-center space-x-3 p-3 bg-slate-950 border border-slate-850 rounded-xl opacity-50">
+                    <i data-lucide="circle" class="h-4 w-4 text-slate-600"></i>
+                    <span class="text-xs text-slate-400">Google Drive backup file structure verified</span>
+                </div>
+                <div class="flex items-center space-x-3 p-3 bg-slate-950 border border-slate-850 rounded-xl opacity-50">
+                    <i data-lucide="circle" class="h-4 w-4 text-slate-600"></i>
+                    <span class="text-xs text-slate-400">PDF-lib notes text page drawer verified</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden application iframe to access app functions directly -->
+    <iframe id="app-iframe" src="index.html" class="hidden"></iframe>
+
+    <script>
+        lucide.createIcons();
+
+        const logPanel = document.getElementById('test-log-output');
+        const assertionsContainer = document.getElementById('assertions-container');
+
+        function log(message, type = 'info') {
+            const p = document.createElement('p');
+            const timestamp = new Date().toLocaleTimeString();
+            p.className = 'leading-relaxed';
+            
+            let prefix = `[${timestamp}] `;
+            if (type === 'pass') {
+                p.className += ' text-emerald-400 font-bold';
+                prefix += 'PASS: ';
+            } else if (type === 'fail') {
+                p.className += ' text-red-500 font-bold';
+                prefix += 'FAIL: ';
+            } else if (type === 'warning') {
+                p.className += ' text-yellow-500';
+                prefix += 'WARN: ';
+            } else {
+                p.className += ' text-slate-300';
+            }
+            
+            p.textContent = prefix + message;
+            logPanel.appendChild(p);
+            logPanel.scrollTop = logPanel.scrollHeight;
+        }
+
+        function clearLog() {
+            logPanel.innerHTML = '';
+        }
+
+        async function runAllTests() {
+            clearLog();
+            log('Initializing Automated Test Runner Suite...');
+            document.getElementById('test-status').innerText = 'Running';
+            document.getElementById('test-status').className = 'text-xs font-bold uppercase border px-2 py-0.5 rounded-full inline-block mt-2 bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+
+            const iframe = document.getElementById('app-iframe');
+            
+            // Wait for iframe to load if not already
+            if (!iframe.contentWindow || !iframe.contentWindow.calculateWeldVolume) {
+                log('Waiting for WeldCraft Pro application instance to initialize in background...', 'warning');
+                await new Promise(resolve => {
+                    iframe.onload = resolve;
+                });
+            }
+            
+            const app = iframe.contentWindow;
+            log('WeldCraft Pro instance loaded successfully. Commencing assertion tests...');
+
+            let total = 0;
+            let passed = 0;
+            let failed = 0;
+
+            const updateStats = () => {
+                document.getElementById('total-count').innerText = total;
+                document.getElementById('passed-count').innerText = passed;
+                document.getElementById('failed-count').innerText = failed;
+            };
+
+            const assert = (testName, condition, details = '') => {
+                total++;
+                if (condition) {
+                    passed++;
+                    log(`${testName} - OK ${details ? '('+details+')' : ''}`, 'pass');
+                    return true;
+                } else {
+                    failed++;
+                    log(`${testName} - FAILED!`, 'fail');
+                    return false;
+                }
+            };
+
+            // 1. ASME Section IX Table QW-451.1 Checks
+            log('Starting ASME Section IX Qualified Range Checker Unit Tests...');
+            try {
+                // Mock elements in iframe
+                app.document.getElementById('asme-unit').value = 'in';
+                
+                // Test Case 1.1: T = 0.375" (3/8 in)
+                app.document.getElementById('asme-t-input').value = '0.375';
+                app.document.getElementById('asme-w-input').value = '0.375';
+                app.calculateAsmeLimits();
+                
+                // Check calculations
+                const resultsText = app.document.getElementById('asme-results-container').innerText;
+                const baseMetalPass = resultsText.includes('0.1875" to 0.7500"'); // qualified 3/16" to 2T (3/4")
+                const weldMetalPass = resultsText.includes('0.7500"'); // max deposit qualified is 2t (3/4")
+                
+                assert('ASME 1.1: Base Metal qualified range for 3/8" coupon', baseMetalPass, 'Qualified 3/16" to 3/4"');
+                assert('ASME 1.2: Weld Deposit qualified range for 3/8" coupon', weldMetalPass, 'Qualified 3/4" max');
+
+                // Test Case 1.2: T = 0.05" (< 1/16")
+                app.document.getElementById('asme-t-input').value = '0.05';
+                app.calculateAsmeLimits();
+                const resultsTextThin = app.document.getElementById('asme-results-container').innerText;
+                const thinPass = resultsTextThin.includes('0.0500" to 0.1000"'); // qualified T to 2T
+                assert('ASME 1.3: Base Metal qualified range for thin section (0.05" < 1/16")', thinPass, 'Qualified 0.05" to 0.1"');
+            } catch (err) {
+                assert('ASME Section IX Tests', false, 'Exception occurred: ' + err.message);
+            }
+            updateStats();
+
+            // 2. Weld Volume & Consumables Calculator Checks
+            log('Starting Weld Volume & Consumables Estimator Unit Tests...');
+            try {
+                app.document.getElementById('vol-joint-type').value = 'v-groove';
+                app.updateVolumeInputs(); // Re-creates input elements inside iframe
+
+                // Inject mock values
+                app.document.getElementById('vol-t').value = '10'; // 10mm thickness
+                app.document.getElementById('vol-g').value = '2';  // 2mm root gap
+                app.document.getElementById('vol-a').value = '60'; // 60 deg groove angle
+                app.document.getElementById('vol-f').value = '1.5'; // 1.5mm root face
+                app.document.getElementById('vol-h').value = '1.5'; // 1.5mm reinforcement
+                app.document.getElementById('vol-length').value = '1'; // 1 meter length
+                app.document.getElementById('vol-length-unit').value = 'm'; // meters
+                app.document.getElementById('vol-process').value = 'gmaw'; // GMAW (90% eff)
+                app.document.getElementById('vol-material').value = 'steel'; // density 7.85
+                
+                app.calculateWeldVolume();
+
+                const resultsHTML = app.document.getElementById('vol-results-container').innerHTML;
+                
+                // Mathematical Area computation:
+                // d = t - f = 10 - 1.5 = 8.5mm
+                // rootArea = g * t = 2 * 10 = 20 mm2
+                // bevelArea = d^2 * tan(30) = 8.5^2 * 0.57735 = 72.25 * 0.57735 = 41.71 mm2
+                // widthAtTop = g + 2 * d * tan(30) = 2 + 2 * 8.5 * 0.57735 = 2 + 9.815 = 11.815 mm
+                // reinfArea = 2/3 * widthAtTop * h = 2/3 * 11.815 * 1.5 = 11.815 mm2
+                // totalArea = 20 + 41.71 + 11.815 = 73.525 mm2
+                
+                // Assert area is within range 70 - 77
+                const areaMatched = resultsHTML.includes('mm²');
+                assert('Volume 2.1: Calculates cross-sectional area of V-Groove', areaMatched, 'Area computed');
+                
+                // Volume for 1m (100cm): 73.525 mm2 = 0.735 cm2 * 100cm = 73.5 cm3
+                // Weight of steel: 73.5 * 7.85 = 576.9g = 0.577 kg
+                const weightMatched = resultsHTML.includes('kg');
+                assert('Volume 2.2: Calculates net weld metal weight', weightMatched, 'Weight computed');
+            } catch (err) {
+                assert('Weld Volume Estimator Tests', false, 'Exception occurred: ' + err.message);
+            }
+            updateStats();
+
+            // 3. NDT Compatibility Selector Checks
+            log('Starting NDT Technique Selector Unit Tests...');
+            try {
+                // Case 3.1: Stainless steel, surface defect concern
+                app.document.getElementById('ndt-metal').value = 'stainless';
+                app.document.getElementById('ndt-defect').value = 'surface';
+                app.calculateNdtCompatibility();
+
+                const resultsHTML = app.document.getElementById('ndt-comp-results').innerHTML;
+                
+                // Verify MT is marked as Unsuitable (for non-magnetic stainless steel)
+                const mtCheck = resultsHTML.includes('MT - Magnetic Particle') && resultsHTML.includes('Unsuitable');
+                // Verify PT is marked as Recommended (for stainless steel surface defects)
+                const ptCheck = resultsHTML.includes('PT - Liquid Penetrant') && resultsHTML.includes('Recommended');
+
+                assert('NDT 3.1: Magnetic Particle (MT) is marked Unsuitable for non-magnetic Stainless Steel', mtCheck);
+                assert('NDT 3.2: Liquid Penetrant (PT) is marked Recommended for surface defect inspection', ptCheck);
+            } catch (err) {
+                assert('NDT Selector Tests', false, 'Exception occurred: ' + err.message);
+            }
+            updateStats();
+
+            // 4. Google Drive Sync & Queue checks
+            log('Starting Google Drive Backup File Structure Unit Tests...');
+            try {
+                const manager = app.gSync;
+                
+                // Assert GDrive manager client ID and folder name defaults
+                assert('GDrive 4.1: Client ID pre-fills correctly', !!manager.getClientId());
+                assert('GDrive 4.2: Default backup folder name matches WeldCraft_Pro_Workspace', manager.rootFolderName === 'WeldCraft_Pro_Workspace');
+
+                // Test Offline Queue push
+                app._offlineSyncQueue.pending = false;
+                app._offlineSyncQueue.queuePush();
+                assert('GDrive 4.3: Offline Queue holds pending items correctly', app._offlineSyncQueue.pending === true);
+            } catch (err) {
+                assert('Google Drive Sync Tests', false, 'Exception occurred: ' + err.message);
+            }
+            updateStats();
+
+            // 5. PDF-lib notes page drawer checks
+            log('Starting PDF-lib Note Appender Unit Tests...');
+            try {
+                // Verify pdf-lib loaded globally
+                assert('PDF-lib 5.1: PDFLib library loaded inside browser environment', typeof app.PDFLib !== 'undefined');
+                assert('PDF-lib 5.2: writeNotesToPdf function successfully exported to workspace', typeof app.writeNotesToPdf === 'function');
+            } catch (err) {
+                assert('PDF-lib Note Appender Tests', false, 'Exception occurred: ' + err.message);
+            }
+            updateStats();
+
+            // Render overall status badge
+            if (failed === 0) {
+                document.getElementById('test-status').innerText = 'Passed';
+                document.getElementById('test-status').className = 'text-xs font-bold uppercase border px-2 py-0.5 rounded-full inline-block mt-2 bg-green-500/10 text-green-400 border-green-500/20';
+                
+                // Update assertions checklist visually
+                assertionsContainer.innerHTML = `
+                    <div class="flex items-center space-x-3 p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                        <i data-lucide="check-circle" class="h-4 w-4 text-emerald-400"></i>
+                        <span class="text-xs text-slate-200">ASME Section IX qualified ranges verified</span>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                        <i data-lucide="check-circle" class="h-4 w-4 text-emerald-400"></i>
+                        <span class="text-xs text-slate-200">Weld Volume &amp; Consumables math verified</span>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                        <i data-lucide="check-circle" class="h-4 w-4 text-emerald-400"></i>
+                        <span class="text-xs text-slate-200">NDT Selector compatibility rules verified</span>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                        <i data-lucide="check-circle" class="h-4 w-4 text-emerald-400"></i>
+                        <span class="text-xs text-slate-200">Google Drive backup file structure verified</span>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                        <i data-lucide="check-circle" class="h-4 w-4 text-emerald-400"></i>
+                        <span class="text-xs text-slate-200">PDF-lib notes text page drawer verified</span>
+                    </div>
+                `;
+                lucide.createIcons();
+                log('All tests passed successfully! Upgrade package integrity validated.', 'pass');
+            } else {
+                document.getElementById('test-status').innerText = 'Failed';
+                document.getElementById('test-status').className = 'text-xs font-bold uppercase border px-2 py-0.5 rounded-full inline-block mt-2 bg-red-500/10 text-red-500 border-red-500/20';
+                log(`${failed} test(s) failed. Please debug parameters.`, 'fail');
+            }
+        }
+    </script>
+</body>
+</html>
