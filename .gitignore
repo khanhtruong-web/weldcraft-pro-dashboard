@@ -22,3 +22,5 @@ temp.js
 test_click.html
 InspectorAI_Backup_*.json
 *Backup*.json
+
+.vercel
